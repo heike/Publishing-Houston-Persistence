@@ -1,0 +1,977 @@
+---
+title: A reproducible pipeline for extracting representative signals from wire cuts
+# subtitle: This is the subtitle
+author:
+    #   Another author footnote, this is a very long footnote and it should be a really long footnote. But this footnote is not yet sufficiently long enough to make two lines of footnote text.
+  - name: Yuhang Lin
+    email: yhlin@iastate.edu
+    affiliations: 
+        - id: yhlin
+          name: Iowa State University
+          department: Department of Statistics
+          address: 2438 Osborn Dr
+          city: Ames
+          state: IA
+          postal-code: 50010
+    attributes:
+        corresponding: true
+    # note: This is the first author footnote.
+  - name: Heike Hofmann
+    email: hofmann@iastate.edu
+    affiliations:
+        - id: hofmann
+          name: Iowa State University
+          department: Department of Statistics
+          address: 2438 Osborn Dr
+          city: Ames
+          state: IA
+          postal-code: 50010
+    # note: |
+abstract: |
+  We propose a reproducible pipeline for extracting representative signals from 2D topographic scans of the tips of cut wires. 
+  The process fully addresses many potential problems in the quality of wire cuts,
+  including edge effects,
+  extreme values,
+  trends,
+  missing values,
+  angles,
+  and warping.
+  The resulting signals can be further used in source determination,
+  which plays an important role in forensic examinations.
+  With commonly used measurements such as the cross-correlation function,
+  the procedure controls the false positive rate and false negative rate to the desirable values as the manual extraction pipeline
+  but outperforms it with robustness and objectiveness.
+keywords: 
+  - data visualization
+  - striation marks
+  - cross-correlation function
+  - Hough transformation
+  - forensic statistics
+date: last-modified
+bibliography: "`r rbbt::bbt_write_bib('bibliography.bib', ignore = stringr::str_subset(rbbt::bbt_detect_citations(), '(^fig-|^tbl-|^eq-|^sec-|^lst-|^thm-|^lem-|^cor-|^prp-|^cnj-|^def-|^exm-|^exr-)'), overwrite = TRUE, library_id=rbbt::bbt_library_id('CSAFE'), translator='bibtex')`"
+format:
+  elsevier-pdf:
+    keep-tex: true
+    journal:
+      name: ASA Student Paper Competition
+      formatting: preprint #doubleblind
+      model: 5p
+      cite-style: authoryear
+      # graphical-abstract: "![Overview of the data processing pipeline from the original scan (top left) to the extracted signal (bottom right).](../images/graphical_abstract.png){width=100%}"
+execute:
+  echo: false
+  warning: false
+  message: false
+  eval: false
+editor_options: 
+  chunk_output_type: console
+include-in-header:
+      - text: |
+          \usepackage{fancyhdr}
+          \setlength\intextsep{0pt} % spacing around figures
+          \setlength{\belowcaptionskip}{0pt}
+          \setlength{\textfloatsep}{5pt}
+          \setlength{\floatsep}{2pt}
+          \setlength{\dbltextfloatsep}{0pt}
+          \setlength\parskip{0pt}
+          \renewcommand\floatpagefraction{.99}
+          \renewcommand\topfraction{.99}
+---
+
+
+\clearpage
+\newpage
+
+\setcounter{page}{1}
+\pagestyle{fancy}
+\fancyhead{} 
+\fancyfoot{} 
+\fancyhead[L]{\sc{A reproducible pipeline for extracting representative signals from wire cuts}}
+\fancyhead[R]{Y. Lin}
+\fancyfoot[R]{\thepage}
+
+
+```{r}
+#| include: FALSE
+#| eval: true
+
+set.seed(0)
+
+rgl::setupKnitr()
+
+library(tidyverse)
+library(x3ptools)
+
+if(!require(wire)) devtools::install_github("YuhangTom/wire")
+library(wire)
+```
+
+
+```{r}
+#| eval: true
+
+x3p <- x3p_read(here::here("scans/T1AW-LI-R1.x3p"))
+```
+
+
+```{r}
+dir.create("../images/", showWarnings = FALSE, recursive = TRUE)
+
+x3p_plot <- x3p
+x3p_image(x3p_plot,
+  size = dim(x3p_plot$surface.matrix) / 5, zoom = 0.6,
+  file = "../images/x3p.png"
+)
+```
+
+
+# Introduction {#sec-Introduction}
+
+
+Determining the source of evidence is a crucial aspect of forensic examinations. During an investigation, the question of the source might turn into the specific source problem: Did this tool leave the marks visible on the evidence? 
+Current practice in forensic labs is that the examiner will reproduce the crime scene evidence using matching materials (i.e., fire a bullet of the same type of ammunition from a suspect's gun or cut the same material with a suspect's tool) and compare marks on the resulting piece under a comparison microscope to the marks on the evidence. Examiners summarise the result of these comparisons according to the AFTE Theory of identification [@afte] as an 'identification' (i.e., the suspect's tool made the mark to the exclusion of any other tool in existence),  an 'exclusion' (i.e., the crime scene evidence was made by a different tool), or an 'inconclusive' (i.e., cannot tell either way) result. 
+This practice was first criticized by the National Research Council [@nas2009] and later by the President's Council of Advisors [@pcast] for its subjectivity and lack of established error rates. 
+
+In response to this criticism, the research community has invested in collecting and distributing validated data [@maNISTBulletSignature2004; @zhengNISTBallisticsToolmark2016], introduced quantitative measures for evaluating the similarity of marks [@chuAutomaticIdentificationBullet2013; @vorburgerApplicationsCrosscorrelationFunctions2011], and suggested automatic matching algorithms [@hareAutomaticMatchingBullet2017; @taiFullyAutomaticMethod2018; @baiker-sorensenAutomatedInterpretationComparison2023].
+
+Most of this work was developed with a focus on firearms evidence and centers on comparisons of breech face impressions on fired cartridge cases and striation marks on bullets. However, it has been shown [@cuellarRevolutionizingForensicToolmark2023; @krishnanAdaptingChumbleyScore2019] that some of the algorithms depend mostly on the type of marks made and can be applied more generally.
+
+Here, we focus on the process of extracting signals from 3D topographic scans of cut wires to assess the similarity of the striation marks engraved onto the wire surface during the cutting process (see @fig-overview). 
+
+![(a) Wirecutter with labeled blades cutting 2 mm aluminum wire. (b) The cut wire surface is scanned using a confocal microscope. (c) Rendering of the scanned surface reveals a tent structure.](../images/overview.pdf){#fig-overview width=46.5%}
+
+When cutting a wire with a bladed tool, small imperfections on the blades touch the wire, scratch over the surface, and leave marks. These marks appear in the form of striations, as visible in @fig-overview(c). 
+We can think of the striation marks as repeated observations of the same 2D signal orthogonal to the cutting direction. 
+The goal, therefore, is to find a curve representative of the signal engraved on the wire by the tool during the cutting process. 
+Once we have determined a representative signal for a scan, we can use one of the procedures in @hareAutomaticMatchingBullet2017, @chumbleyValidationToolMark2010, or @juJournalOpenSourceImplementation2022 to quantify the similarity between scans of cuts made by the same tool and cuts made by different tools. 
+Identifying a representative signal in wire scans is more challenging than in other scans, such as screwdriver marks or bullets, because of the absence of macro structures (such as shoulders on either end of the engraved area), which could be used for aligning objects during the scanning process. Here, wire cuts are aligned under the microscope along the micro-feature of the ridge of the tent shown in @fig-overview(c) such that each side of the tent's roof is as parallel to the microscope's lens as possible, creating two dome-shaped scans for each cut. @fig-T1W shows all four scans corresponding to the two wire ends cut with tool 1 (in the location closest to the jaw). Each scan shows markings engraved by one of the blades.
+
+![Scans of cut wires (tool 1)](../images/T1W.pdf){#fig-T1W}
+
+Each scan consists of height measurements taken on a regular grid of 0.645 $\times$ 0.645 square microns (1 micron = 1 $\mu$m = 1/1000 millimeter). The surface measurements can be stored in the form of a real-valued matrix $F$ with dimensions height $h$ $\times$  width $w$. We will refer to an element in this matrix as $F_{ij}$ with $1 \le i \le h$ and $1 \le j \le w$. 
+We can think of this matrix as a set of functions across the width of the scan. We will denote the function corresponding to the $i$th row of values in $F$ as $f_i$.
+The goal of finding a representative signal is equivalent to identifying a function $\tilde{f}$ that is representative of the functions $f_i$, $1 \le i \le h$.
+
+Wire scans are more complicated than scans of other striation marks in the literature because: 
+
+1. The absence of macro-structure creates alignment issues (i.e., striations are not necessarily vertical but have to be rotated),
+2. The dome-shaped wire surface introduces structural missing values (censored values),
+3. Vibrations during the scanning process create artificial spikes in the observed surface, particularly along the edges of the scanned surface,
+4. While the wire surface is aligned in parallel to the lens, at the micron level, the surface shows strong trends unrelated to the cutting procedure,
+5. Wires tend to roll towards the outer areas of the blades during the cutting, resulting in 'warped' striation marks. 
+
+In order to avoid the subjectivity of manual inspection (and the resulting variability), we need to address each of these problems in the algorithmic approach. 
+In the remainder of the paper, we first discuss the algorithm in @sec-Algorithm and address each of the problems listed above. In @sec-Study, we introduce the study and its observed data. In @sec-Result, we show the results of the algorithm applied to the study's data.
+
+<!-- Nominally all functions $f_i$, $1 \le i \le h$ have a length of $w$. However, because of the dome shape of the scanned wire piece, we observe a lot of structural missing values at the beginning and the end of $f_i$ capturing the top or bottom of the scan. We can think of these structural missing values as censoring imposed on the observed values by the wire surface. -->
+
+
+# Algorithm {#sec-Algorithm}
+
+
+@fig-x3ps shows an overview of the steps from the raw scan to the extracted signal. 
+We discuss each of the steps in the order of taking:
+
+1. Identify the boundaries of the wire within the surface matrix $F$ and **remove edge effects**, @sec-Edgeeffects.
+2. Identify and **remove spikes on the surface**, @sec-Extremevalues.
+3. **Flatten the surface** by removing trends in the surface measurements introduced by scanning positioning, @sec-Trend.
+4. **Impute internal missing values** on the surface, @sec-Imputation.
+5. Identify the main striation direction and **rotate striations into a vertical position**, @sec-Rotation.
+6. **Address warping of striations** introduced by the wire rolling during the cutting, @sec-Shifting.
+7. Finally, **extract signals** from the scan by averaging the functions $\tilde{f}_i$ of the processed scan surface $\tilde{F}$.
+
+The performance of the algorithm is then evaluated on scans where we know the ground truth, i.e., we know the exact location and blade involved in those wire cuts. 
+We will measure the similarities between pairs of scans using the cross-correlation function (CCF) of their corresponding signals.
+
+For visualization purposes,
+we discuss the algorithm's steps in the example of scan `T1AW-LI-R1` 
+from the data described in @sec-Study (see @fig-x3p).
+The naming scheme tells us that this scan refers to the first (R1) cut made by tool 1 at the jaw (Location Inner). The scan is of the side engraved by edge A. 
+
+The surface matrix $F$ consists of a regular grid of size
+$`r x3p$header.info$sizeX` \times `r x3p$header.info$sizeY`$ taken at a resolution of $0.645\ \mu m \times 0.645\ \mu m$. @fig-edges shows that this scan has large surface spikes along the edges of the wire surface. We will address these first.
+
+
+## Removing edge effects {#sec-Edgeeffects}
+
+
+::: {#fig-edges layout="[[24, -2, 24, -2, 24, -2, 24]]" fig-env="figure"}
+
+![](../images/x3p.png){#fig-one}
+
+![](../images/second.png){#fig-second}
+
+![](../images/third.png){#fig-third}
+
+![](../images/fourth.png){#fig-fourth}
+
+Tilting the object from the top view (left) to its side, reveals more and more surface spikes in the surface measurements. Values along the edges of the scan (right) are particularly prone to these spikes. 
+:::
+
+
+High-resolution scanning instruments, such as the confocal light microscope used for the scans in this study, are susceptible to minute changes. Air perturbations caused by breathing and computer fans cause the wire to swing (at a sub-micron level), resulting in large spikes along the edges.  
+
+
+![Process of identifying an inside mask for a wire cut of arbitrary shape.](../images/find-inside-polygon.pdf){#fig-find-inside-polygon width=47.5%}
+
+
+::: {#fig-x3ps layout="[[24, -2, 24, -2, 24, -2, 24], [24, -2, 24, -2, 24, -2, 24]]" fig-env="figure*"}
+
+![An overview plot of a sample scan stored in an x3p object.](../images/x3p.png){#fig-x3p}
+
+![Mask added as the concave polygon for removing edge effects. Only the inner area will be used for further analysis.](../images/x3p_surface_polygon.png){#fig-x3p-surface-polygon}
+
+![Concave polygon area used for further analysis.](../images/x3p_inner.png){#fig-x3p-inner}
+
+![The surface after imputing all missing values.](../images/x3p_inner_impute.png){#fig-x3p-inner-impute}
+
+![The surface before rotation with a colored mask by the values of the sequential differences computed.](../images/x3p_bin.png){#fig-x3p-bin}
+
+![The surface after rotation with a colored mask by the values of the sequential differences computed.](../images/x3p_bin_rotate.png){#fig-x3p-bin-rotate}
+
+![The surface after shifting striations by minimizing MSE.](../images/x3p_approx.png){#fig-x3p-approx}
+
+![The extracted signal aligned to the signal of the repeated cut.](../images/x3p_signals.png){#fig-x3p-signals}
+
+
+Overview of the data processing pipeline from the original scan (top left) to the extracted signal (bottom right). 
+:::
+
+
+These spikes are an order of magnitude bigger than the signal and easily overwhelm the signal if left unattended. 
+To resolve this problem,
+we identify the edge of the scan and remove the points along the boundary.  
+For that, we find a concave hull in the scan as shown in the sketch in @fig-find-inside-polygon:
+We first fold all boundary points to the inside of a circle by applying the function $r \mapsto rc^{-1}$, where $r > 0$ is the distance of a boundary point from the center of a circle with radius $c$, $c > 0$. This action topologically turns the boundary inside-out, making the problem of finding a concave hull one of finding a convex hull. We find an $\alpha$-hull of this shape by using  the `concaveman` algorithm  implemented by @gombinConcavemanVeryFast2020. Folding the resulting $\alpha$-hull back using the same circle center as before leaves us with a polygon inside the boundaries of the original scan. The identified boundary is shown in red in @fig-x3p-surface-polygon, and the corresponding points are removed from the surface matrix (by giving them `NA` values). 
+
+
+```{r eval=FALSE, include = FALSE}
+#| fig-cap: Process of identifying the 'inside' of a polygon. 
+#| layout-ncol: 2
+#| layout-nrow: 2
+#| fig-height: 2
+#| fig-subcap: 
+#|   - "Boundary points around center"
+#|   - "Inverted boundary wrt center"
+#|   - "Convex α-hull"
+#|   - "Inverted hull"
+boundary <- x3p %>% x3p_boundary_points(sample = 10)
+
+center <- with(boundary, c(diff(range(x, na.rm = TRUE)), diff(range(y, na.rm = TRUE)))/2)
+points_inside_out <- boundary %>% mutate(
+  x = x - center[1], 
+  y = y - center[2]) %>% 
+  mutate(
+    r = sqrt(x^2 + y^2), theta = atan(y/x), 
+    theta = ifelse(x < 0, atan(y/x) + pi, 
+    ifelse(y < 0, theta + 2 * pi, theta))) %>% 
+  mutate(xout = 1/r * cos(theta), 
+         yout = 1/r * sin(theta))
+
+polygon_inside_out <- inside_polygon(boundary$x, boundary$y, 
+    concavity = 1.5, center = center)
+
+
+points_inside_out %>%
+  ggplot(aes(x = x, y = y)) + 
+  geom_point(colour = "grey40") + 
+  geom_point(x = 0, y = 0, size=4, colour = "steelblue") +
+  coord_equal() + 
+  theme_void()
+#ggsave("boundary-1.png")
+
+points_inside_out %>%
+  ggplot(aes(x = xout, y = yout)) + 
+  geom_point(colour = "grey40") + 
+  geom_point(x = 0, y = 0, size=4, colour = "steelblue") +
+  coord_equal() + 
+  theme_void()
+#ggsave("boundary-2.png")
+
+points_inside_out %>%
+  ggplot(aes(x = xout, y = yout)) + 
+  geom_point(colour = "grey80") + 
+  geom_point(colour = "red", data = polygon_inside_out, size = 3) + 
+  geom_polygon(fill = "red", alpha = .3, data = polygon_inside_out, size = 3) + 
+  geom_point(x = 0, y = 0, size=4, colour = "steelblue") +
+  coord_equal() + 
+  theme_void()
+#ggsave("boundary-3.png")
+
+  
+boundary %>%
+  ggplot(aes(x = x, y = y)) + 
+  geom_point(colour = "grey80") + 
+  geom_point(colour = "red", data = polygon_inside_out, size = 3) + 
+  geom_polygon(fill = "red", alpha = .3, data = polygon_inside_out, size = 3) + 
+  geom_point(x = center[1], y = center[2], size=4, colour = "steelblue") +
+  coord_equal() + 
+  theme_void()
+#ggsave("boundary-4.png")
+```
+
+
+```{r}
+mask_col <- "#CD7F32"
+concavity <- 1.5
+
+x3p <- x3p %>%
+  x3p_surface_polygon(colour = mask_col, concavity = concavity)
+
+x3p$mask[x3p$mask != mask_col] <- "#FF0000"
+
+x3p_plot <- x3p
+x3p_image(x3p_plot,
+  size = dim(x3p_plot$surface.matrix) / 5, zoom = 0.6,
+  file = "../images/x3p_surface_polygon.png"
+)
+
+mask_col <- "#FF0000"
+x3p <- x3p %>%
+  x3p_surface_polygon(colour = mask_col, concavity = concavity)
+```
+
+
+```{r}
+x3p_inner <- x3p_extract(x3p, mask_vals = mask_col)
+
+x3p_plot <- x3p_inner %>%
+  x3p_delete_mask()
+x3p_image(x3p_plot,
+  size = dim(x3p_plot$surface.matrix) / 5, zoom = 0.6,
+  file = "../images/x3p_inner.png"
+)
+```
+
+
+## Surface spikes {#sec-Extremevalues}
+
+
+White areas inside the scan shown in @fig-x3p indicate missing values. These values are not reported by the microscope because their exact value cannot be determined accurately enough. @fig-insidepoly-df-boxplot shows boxplots of the standard deviation observed conditioned on the number of missing values in the immediate neighborhood. Note that the distribution of standard deviations is extremely skewed. Fewer than 75% of all values are larger than 0.5, but the overall range of standard deviations in this example reaches a value of 20 microns. We see from the figure  that values around dropouts  show an inflated variability -- even just one missing value among the immediate neighbors increases the median of the standard deviation by a factor of about 3. 
+
+
+```{r eval=FALSE}
+insidepoly_df %>% filter(!is.na(n_neighbor_val_miss), n_neighbor_val_miss!= 9) %>% count(n_neighbor_val_miss==0)
+# n_neighbor_val_miss == 0       n
+# 1                    FALSE   67518
+# 2                     TRUE 2452870
+```
+
+
+So,
+to eliminate these extreme values,
+we only keep those points without any missing values in the neighbor.
+While this might seem like an extreme measure, it only affects a small percentage of observations. In the scan of @fig-edges, 2.7% (67518 measurements) of the observations are thus affected.
+
+
+```{r}
+#| include: false
+
+insidepoly_df <- x3p_insidepoly_df(x3p,
+  mask_col = "#FF0000", concavity = 1.5, b = 1,
+  ifplot = TRUE
+)
+
+gg <- insidepoly_df %>%
+  mutate(
+    n_discrete = ifelse(parse_number(as.character(n_neighbor_val_miss)) <= 4, as.character(n_neighbor_val_miss), "5 or more")
+  ) %>%
+  filter(!is.na(n_discrete)) %>%
+  ggplot(aes(x = n_discrete, y = sd_not_miss)) +
+  geom_boxplot(fill="grey80") +
+  labs(
+    x = "Number of missing immediate neighbors (including self)"
+  ) +
+  theme_bw() + 
+  scale_y_continuous("standard deviation",  limits=c(0,.5))
+ggsave("../images/insidepoly_df_boxplot.png", width=6, height = 3)
+```
+
+
+![Boxplot of standard deviation against the number of missing immediate neighbors (including self).](../images/insidepoly_df_boxplot.png){#fig-insidepoly-df-boxplot width=45%}
+
+
+```{r}
+insidepoly_nonmis_x3p <- insidepoly_df %>%
+  filter(n_neighbor_val_miss == 0) %>%
+  df_to_x3p() %>%
+  x3p_delete_mask()
+
+x3p_plot <- insidepoly_nonmis_x3p
+x3p_image(x3p_plot,
+  size = dim(x3p_plot$surface.matrix) / 5, zoom = 0.6,
+  file = "../images/insidepoly_nonmis_x3p.png"
+)
+```
+
+
+## Trend {#sec-Trend}
+
+
+Now that the most extreme values are removed from the surface scan,
+we can consider the structure of the signal we want to extract.
+We want to extract a representative curve as our signal,
+formed by the ups and downs of the striation.
+If we extract the signal directly from the surface as it is now,
+the curvature of the surface dominates the behavior of the signal. 
+Therefore,
+we need to remove the trends before proceeding.
+For that, we use regression with quadratic terms and an interaction effect between rows and columns of the surface matrix:
+\begin{align*}
+	F_{ij} = \beta_0 + \beta_1 x_i + \beta_2 x_i ^ 2 + \beta_3 y_j + \beta_4 y_j ^ 2 + \beta_5 x_i y_j + \epsilon_{ij},
+\end{align*}
+Note that the coefficients
+$\beta_0, \beta_1, \beta_2, \beta_3, \beta_4, \beta_5$
+are nuisance parameters, i.e., the whole fit is only used to remove any trend in the surface matrix. Rather than using $\hat{F}_{ij}$ of the above fit, we modify the surface values by correcting for this fit. The new values of $\tilde{F}_{ij} = \epsilon_{ij}$ reflect the surface values that are unaffected by the trend and capture the signal engraved by the tool rather than the positioning of the wire under the microscope.
+
+
+## Imputation {#sec-Imputation}
+
+After separating the overall trend and the noise,
+we focus now on missing values on the surface, 
+either existing from the beginning or created by the algorithm when removing spikes in @sec-Extremevalues.
+We fill these holes by iteratively imputing missing values as an average of values of the immediate neighborhood of a $3 \times 3$ grid, i.e., using the same immediate neighbors as before,
+until we get a full surface without any missing in the original scan area.
+We use the boundary shape from @fig-x3p-inner to restrict the surface to interpolated values.
+Points outside the boundary result from extrapolation,
+which can be highly biased and extreme.
+The surface after imputation is plotted in @fig-x3p-inner-impute.
+
+
+```{r}
+x3p_inner_nomiss_res <- df_rmtrend_x3p(insidepoly_df)
+
+x3p_inner_impute <- x3p_impute(x3p_inner_nomiss_res,
+  ifout = FALSE, ifsave = FALSE, dir_name = NULL, ifplot = FALSE
+)
+
+x3p_plot <- x3p_inner_impute
+x3p_image(x3p_plot,
+  size = dim(x3p_plot$surface.matrix) / 5, zoom = 0.6,
+  file = "../images/x3p_inner_impute.png"
+)
+```
+
+
+## Rotation {#sec-Rotation}
+
+
+In order to align striations vertically, we have to first identify striations -- a stria is defined as a valley engraved by a  micro-imperfection 'sticking out' from the surface of a tool's blade. We can identify the sides of these valleys in each row of the surface matrix $F$ by using a lag 1 difference $DF_{i,j} = F_{i, j+1} - F_{i, j}$ for $1 \le i \le h$ and $1 \le j < w$.   
+@fig-x3p-bins shows areas of the steepest decline (left) and incline (right).
+
+
+::: {#fig-x3p-bins layout="[[24, -2, 24]]"}
+
+![Areas of steepest decline.](../images/x3p_bin_red.png){#fig-x3p-bin-red}
+
+![Areas of steepest incline.](../images/x3p_bin_blue.png){#fig-x3p-bin-blue}
+
+Regions of steepest decline (red) and incline (blue).
+:::
+
+
+The stripes we see in these images follow the slopes of the striation marks and, therefore, serve as a good representation of the angle under which the striation marks are located in the scan. 
+
+
+In @fig-x3p-bin, the images of @fig-x3p-bins are overlaid as masks. 
+Note that in order to better visualize the striation marks, we down-sampled the scans shown in  @fig-x3p-bin to @fig-x3p-approx considerably (by a factor of 8) before plotting.
+
+
+We use a Hough transformation [@dudaUseHoughTransformation1972] to obtain pairs of polar coordinates 
+$(r, \theta)$
+that represent the directions of possible vertical lines on the picture,
+also known as Hough lines.
+Then,
+our goal is to estimate
+the main direction $\theta$ of the lines. 
+We numerically integrated over radius $r$ and found the distribution of these angles, shown in @fig-x3p-hough-theta-loess.
+The red vertical line indicates
+the maximum likelihood estimate (MLE) for
+$\theta$, which we derive
+ based on using a LOESS (locally estimated scatterplot smoothing) of the density as shown by the blue line in @fig-x3p-hough-theta-loess,
+ with the red line showing the MLE.
+The Hough lines corresponding to the estimated value of $\hat{\theta}$ are shown as red overlays in @fig-x3p-cimg-nfline.
+Rotating the scan by $\hat{theta}$ turns most of the striations into a vertical position along the the scan. The resulting scan is shown in  @fig-x3p-bin-rotate.
+
+
+![Loess fit for angle in radians.](../images/x3p_hough_theta_loess.png){#fig-x3p-hough-theta-loess width=45%}
+
+
+![Hough lines detected before rotation are marked as red.](../images/x3p_cimg_nfline.png){#fig-x3p-cimg-nfline width=40%}
+
+
+```{r}
+freqs <- c(0, 0.3, 0.7, 1)
+
+x3p_plot <- x3p_inner_impute %>%
+  x3p_bin_stripes(
+    direction = "vertical",
+    colors = c("#b12819", "#ffffff", "#134D6B"),
+    freqs = freqs
+  )
+x3p_image(x3p_plot %>% x3p_sample(8),
+  size = dim(x3p_plot$surface.matrix) / 5, zoom = 0.6,
+  file = "../images/x3p_bin.png"
+)
+```
+
+
+```{r}
+freqs <- c(0, 0.45, 0.55, 1)
+
+x3p_bin <- x3p_read("../scans/T1AW-LI-R2.x3p") %>%
+  x3p_insidepoly_df(b = 1) %>%
+  df_rmtrend_x3p() %>%
+  x3p_impute() %>%
+  x3p_bin_stripes(
+    direction = "vertical",
+    colors = c("#b12819", "#ffffff", "#134D6B"),
+    freqs = freqs
+  )
+
+x3p_plot <- x3p_extract(x3p_bin, mask_vals = "#b12819")
+x3p_image(x3p_plot %>% x3p_sample(8),
+  size = dim(x3p_plot$surface.matrix) / 5, zoom = 0.6,
+  file = "../images/x3p_bin_red.png"
+)
+
+x3p_plot <- x3p_extract(x3p_bin, mask_vals = "#134D6B")
+x3p_image(x3p_plot %>% x3p_sample(8),
+  size = dim(x3p_plot$surface.matrix) / 5, zoom = 0.6,
+  file = "../images/x3p_bin_blue.png"
+)
+```
+
+
+```{r}
+freqs <- c(0, 0.3, 0.7, 1)
+
+x3p_bin <- x3p_read("../scans/T1AW-LI-R2.x3p") %>%
+  x3p_insidepoly_df(b = 1) %>%
+  df_rmtrend_x3p() %>%
+  x3p_impute() %>%
+  x3p_bin_stripes(
+    direction = "vertical",
+    colors = c("#b12819", "#ffffff", "#134D6B"),
+    freqs = freqs
+  )
+
+x3p_bin_red <- x3p_extract(x3p_bin, mask_vals = "#b12819")
+x3p_bin_blue <- x3p_extract(x3p_bin, mask_vals = "#134D6B")
+
+ntheta <- 720
+
+min_score_cut <- 25
+
+loess_span <- 0.2
+
+### Change to contrast color
+x3p_shift <- x3p_bin_red$surface.matrix
+NA_val <- -(x3p_bin_red$surface.matrix %>%
+  c() %>%
+  summary() %>%
+  .[c("Min.", "Max.")] %>%
+  abs() %>%
+  max() %>%
+  ceiling(.))
+x3p_shift[is.na(x3p_bin_red$surface.matrix)] <- NA_val
+
+### Change to raster
+x3p_raster <- t(x3p_shift) %>%
+  raster::raster(xmx = x3p_bin_red$header.info$sizeX - 1, ymx = x3p_bin_red$header.info$sizeY - 1)
+
+### Change to cimg
+x3p_cimg <- imager::as.cimg(x3p_raster)
+
+### Hough transformation for lines
+x3p_hough_df <- imager::hough_line(x3p_cimg, ntheta = ntheta, data.frame = TRUE, shift = FALSE)
+
+### For theta_mod: 0 = pi = 2 * pi <- pi / 2, pi / 2 = pi * 3 / 2 <- 0
+### For theta_mod_shift: 0 = pi = 2 * pi <- pi, pi / 2 = pi * 3 / 2 <- pi / 2
+### For theta_mod_shift / pi: 0 = pi = 2 * pi <- 1, pi / 2 = pi * 3 / 2 <- 1 / 2
+x3p_hough_df_shift <- x3p_hough_df %>%
+  mutate(
+    theta_mod = (theta - pi / 2) %% pi,
+    theta_mod_shift = theta_mod + pi / 2
+  ) %>%
+  ### Integrate out rho
+  group_by(theta_mod_shift) %>%
+  summarise(
+    score = sum(score)
+  )
+
+
+
+### loess fit
+loess_fit <- loess(score ~ theta_mod_shift, span = loess_span, data = x3p_hough_df_shift)
+### loess predict
+loess_pred <- predict(loess_fit, x3p_hough_df_shift$theta_mod_shift)
+
+
+### loess cutoff point
+loess_cut <- x3p_hough_df_shift$theta_mod_shift[which.max(loess_pred)]
+
+### Filter theta with loess
+theta_filter <- x3p_hough_df_shift %>%
+  filter(between(theta_mod_shift, loess_cut - 2 * pi / ntheta, loess_cut + 2 * pi / ntheta))
+
+### Filter rho with theta
+x3p_hough_rho_df <- x3p_hough_df %>%
+  mutate(
+    theta_mod = (theta - pi / 2) %% pi,
+    theta_mod_shift = theta_mod + pi / 2
+  ) %>%
+  filter(
+    theta_mod_shift %in% theta_filter$theta_mod_shift
+  )
+
+### Select main lines
+main_lines <- x3p_hough_rho_df %>%
+  filter(score > min_score_cut)
+
+angles <- (
+      (main_lines$theta / pi * 180) %>%
+        unique()
+      ### 0 is same as pi on the same line
+    ) %% 180
+
+  angles <- ifelse(angles > 90, -(180 - angles), angles)
+  angle <- mean(angles)
+
+p_MLE <- x3p_hough_df %>%
+  mutate(theta = (theta - pi / 2) %% pi + pi / 2 - pi) %>% 
+  group_by(theta) %>%
+  summarise(
+    score = sum(score)
+  ) %>% 
+  ggplot(aes(x = theta, y = score)) +
+  geom_point() +
+  geom_smooth(method = "loess", span = loess_span) +
+  theme_bw() +
+  xlab("angle (radians)") +
+  geom_vline(xintercept = angle / 180 * pi, col = "red")
+ggsave("../images/x3p_hough_theta_loess.png")
+
+### Plot image with main lines after selecting theta
+png("../images/x3p_cimg_nfline.png", bg = "transparent", width = 400, height = 400)
+plot(x3p_cimg)
+with(main_lines, imager::nfline(theta, rho, col = "red"))
+dev.off()
+
+magick::image_read("../images/x3p_cimg_nfline.png") %>% 
+  magick::image_trim() %>% 
+  magick::image_write("../images/x3p_cimg_nfline.png")
+```
+
+
+```{r}
+x3p_bin_rotate <- x3p_vertical(x3p_inner_impute, freqs = freqs, min_score_cut = 20, loess_span = 0.2, ifplot = FALSE)
+
+x3p_plot <- x3p_bin_rotate
+x3p_image(x3p_plot %>% x3p_sample(8),
+  size = dim(x3p_plot$surface.matrix) / 5, zoom = 0.6,
+  file = "../images/x3p_bin_rotate.png"
+)
+```
+
+
+## Shifting {#sec-Shifting}
+
+
+During the cutting process, the wire rolls (at a microscopic level) away from the tool's jaw, resulting in curved striation marks. This curvature is visible in the scans of the previous section. The density of the Hough line angles in @fig-x3p-hough-theta-loess also suggests a secondary mode with an angle more extreme than the identified $\hat{\theta}$.
+
+We deal with this curvature by using small, line-wise horizontal shifts of the signals by minimizing the mean square error (MSE) for all $f_i$ with respect to a base signal $f_0$:
+\begin{align*}
+  \text{MSE}_{i k} =
+  \frac{1}{n_{i k}} \sum_{j = 1} ^ {n_{i k}} \left(f_{0 (j+k)} - f_{i (j+k)} \right) ^ 2
+  ,
+\end{align*}
+where
+$n_{i k}$ is the count for the number of non-missing values for $f_i$,
+$f_{0 (j+k)}$ is the $(j + k)$th element of $f_0$,
+$f_{i (j+k)}$ is the $(j + k)$th element of $f_i$, where $-\delta \le k \le \delta$.
+
+While we evaluate the above function only for integer values of $k$,
+we fit a parabola for each pair and obtain the desired shift width that minimizes the MSE,
+which can be a non-integer value bounded in the given range,
+as shown in @fig-x3p-approx-MSE.
+These shifting widths then move curves for each $y$ along the $x$ direction.
+The resulting surface is shown in @fig-x3p-approx.
+
+
+```{r}
+ifplot <- FALSE
+delta <- -5:5
+delta_q_range <- c(0, 1)
+
+x3p_df <- x3p_bin_rotate %>%
+  x3p_to_df()
+
+scale <- x3p_get_scale(x3p_bin_rotate)
+### reverse column id for surface matrix with more than 1 observed value
+yidx <- rev(which(colSums(!is.na(x3p_bin_rotate$surface.matrix)) >= 2))
+### all possible y
+y_sort <- x3p_df$y %>%
+  unique() %>%
+  sort()
+y_sort <- y_sort[rev(yidx)]
+
+### middle column id for surface matrix with more than 1 observed value
+yidx_mid <- yidx[floor(length(yidx) / 2)]
+y_sort_mid <- y_sort[floor(length(yidx) / 2)]
+
+j <- 750
+
+if (near(j, floor(length(yidx) / 2))) {
+  0
+} else {
+  ### f1 values
+  f1 <- x3p_bin_rotate$surface.matrix[, yidx_mid]
+  f2 <- x3p_bin_rotate$surface.matrix[, yidx[j]]
+
+  ### Mean squared error for all delta
+  MSE <- map_dbl(delta, function(delta_i) {
+    ### Too few non-missing values, cannot do anything
+    if (sum(!is.na(f2)) < 30) {
+      return(NA)
+    }
+
+    if (delta_i == 0) {
+      mean((f1 - f2)^2, na.rm = TRUE)
+    } else {
+      if (delta_i > 0) {
+        mean((f1[-(1:delta_i)] - f2[1:(length(f2) - delta_i)])^2, na.rm = TRUE)
+      } else {
+        mean((f1[1:(length(f1) - abs(delta_i))] - f2[-(1:abs(delta_i))])^2, na.rm = TRUE)
+      }
+    }
+  }) %>%
+    set_names(delta)
+
+  ### Fit parabola
+  if (length(MSE) - sum(is.na(MSE)) < 3) {
+    warning("No enough non-NA MSE values to fit parabola.")
+
+    return(NA)
+  } else {
+    para_coef <- lm(MSE ~ delta + I(delta^2)) %>%
+      coef()
+
+    ### Get delta with minimum mean squared error
+    out <- (-para_coef["delta"] / (2 * para_coef["I(delta^2)"])) %>%
+      unname()
+
+    ### Consider different a values
+    if (para_coef["I(delta^2)"] < 0) {
+      if (out >= 0) {
+        out <- (-para_coef["delta"] + sqrt((para_coef["delta"])^2 - 4 * para_coef["I(delta^2)"] * para_coef["(Intercept)"])) / (2 * para_coef["I(delta^2)"]) %>%
+          unname()
+      } else {
+        out <- (-para_coef["delta"] - sqrt((para_coef["delta"])^2 - 4 * para_coef["I(delta^2)"] * para_coef["(Intercept)"])) / (2 * para_coef["I(delta^2)"]) %>%
+          unname()
+      }
+    } else {
+      if (near(para_coef["I(delta^2)"], 0)) {
+        warning("Coefficient for quadratic term is 0. Use 0 shifting.")
+
+        out <- 0
+      }
+    }
+
+    ### Minimum value of parabola is far from delta with minmimum MSE
+    ### Bad fit
+    if (!between(out, min(delta), max(delta))) {
+      warning("Minimum value of the parabola is out of preset delta range. Use 0 shifting.")
+
+      out <- 0
+
+      # out <- pmin(out, max(delta))
+      # out <- pmax(out, min(delta))
+    }
+  }
+  out
+}
+
+p_MSE <- tibble(delta = delta, MSE = MSE) %>%
+  ggplot(aes(x = delta, y = MSE)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ x + I(x^2)) +
+  geom_vline(xintercept = (-para_coef[2] / (2 * para_coef[3])), col = "red") +
+  theme_bw() +
+  scale_x_continuous(breaks = delta)
+ggsave("../images/x3p_approx_MSE.png")
+```
+
+
+![Parabola fitted with shifting value with minimum MSE marked as red.](../images/x3p_approx_MSE.png){#fig-x3p-approx-MSE width=45%}
+
+
+```{r}
+x3p_approx <- x3p_shift(x3p_bin_rotate, ifplot = FALSE)
+
+x3p_plot <- x3p_approx
+x3p_image(x3p_plot %>% x3p_sample(8),
+  size = dim(x3p_plot$surface.matrix) / 5, zoom = 0.6,
+  file = "../images/x3p_approx.png"
+)
+```
+
+
+# Results {#sec-Result}
+
+
+## Study {#sec-Study}
+
+
+In our study,
+we will focus on wire cutters.
+
+To begin the study,
+we first need data,
+including some from the crime scene and others from a given tool.
+In the development process of the whole pipeline,
+we should have all marks created by known tools,
+which will be regarded as the ground truth when comparing either pair of marks and computing the error rates.
+So,
+we prepared 5 Kaiweets wire cutters
+(model KWS-105) and
+aluminum wire (16 Gauge/1.5 mm, anodized).
+We labeled all sides of the blades of wire cutters as AB CD,
+shown in  @fig-overview a,
+and used them to cut at 3 different locations,
+inner, middle, and outer,
+along the blade twice.
+As a result,
+we have
+$5 \times 2 \times 3 \times 2 = 60$.
+The cutting surface for each side of AB and CD formed tent structures as in
+ @fig-overview c
+that can be separated into 2 parts,
+long edge A and short edge B,
+long edge C and short edge D.
+So,
+we scan each edge by a confocal light microscope as in  @fig-overview b,
+resulting in
+$60 \times 2 = 120$
+marks in total.
+
+
+## Data structure {#sec-Datastructure}
+
+
+These scans are stored as `x3p` objects,
+a file format specified in ISO standard 25178-72:2017/AMD 1:2020
+(based on ISO ISO5436 – 2000)
+describing 3D surface measurements at a resolution of
+$0.645 \mu m \times 0.645 \mu m$
+per square pixel.
+The naming scheme for these files consists of 4 parts:
+tool (`T1`, `T2`, `T3`, `T4`),
+edge (`A`, `B`, `C`, `D`),
+location (`I`, `M`, `O`),
+and
+repetition (`R1`, `R2`).
+For example,
+a file named
+`T1AW-LI-R1`
+is the first replicate made using the inner location of edge A of tool 1.
+All these 120 well-documented `x3p` objects will be uploaded to a public data repository,
+and a more detailed data description paper can be found here.
+
+
+<!--![Tent structure of a surface cut.](../images/x3p_tent.png){#fig-x3p_tent width=45%}-->
+
+
+<!--![A cutted wire under the confocal microscope.](../images/Image-17.jpg){#fig-WireMicroscope width=45%}-->
+
+
+With this set of data in position,
+given any pairs,
+our question is,
+can we say both marks are made from the same tool,
+and how accurate is our conclusion?
+Because both marks are made from known tools 1 to 5,
+we can compute the error rate of our algorithm by matching our conclusion with the truth.
+Later,
+we can apply the same algorithm to data from real crime scenes and
+get the decision.
+
+
+## Evaluation
+
+
+So,
+after all previous efforts,
+we can now extract signals by computing the median of values for each $x$ along the $y$-axis.
+In @fig-x3p-signals,
+signals extracted from 2 replicates of `T1AW-LI` cuts are aligned together.
+
+
+```{r}
+x3p_signal <- x3p_approx %>%
+  x3p_raw_sig_vec() %>%
+  filter(between(sig, -10, 10))
+
+x3p_signal_2 <- x3p_read(here::here("scans/T1AW-LI-R2.x3p")) %>%
+  x3p_insidepoly_df(b = 1) %>%
+  df_rmtrend_x3p() %>%
+  x3p_impute() %>%
+  x3p_vertical(freqs = freqs) %>%
+  x3p_shift() %>%
+  x3p_raw_sig_vec() %>%
+  filter(between(sig, -10, 10))
+
+aligned <- bulletxtrctr::sig_align(x3p_signal$sig, x3p_signal_2$sig, min.overlap = 1000)
+
+p_x3p_signals <- aligned$lands %>%
+  pivot_longer(sig1:sig2, names_to = "Rep", names_prefix = "sig") %>%
+  ggplot(aes(x = x, y = value)) +
+  geom_line(aes(colour = Rep)) +
+  theme_bw() +
+  scale_colour_brewer(palette = "Paired") +
+  xlab("x") +
+  ylab("signal value") +
+  ggtitle("T1AW-LI")
+
+ggsave("../images/x3p_signals.png", width = 7, height = 5)
+```
+
+
+Then,
+we can use these extracted signals for alignment and comparison by maximizing CCF.
+
+Assessing all pairwise signals based on their maximized cross-correlation results in a decent amount of separations between known same-source and known different-source pairs.
+All combinations of $120 \times 119 = 14,280$ different pairwise signals are considered here and take less than 2 hours to run without any kind of parallel computing,
+which does not cause any computational burden.
+Boxplots of resulting CCFs are shown in Figure @fig-ccf-boxplot.
+Here,
+pairs with the same sources have an obviously high CCF compared to those with different tools and edges or locations,
+marked as `???` on the plot.
+
+
+![Boxplots of resulting CCFs for all cut pair combinations.](../images/ccf_boxplot.png){#fig-ccf-boxplot width=45%}
+
+
+We also have the receiver operating characteristic (ROC) curve for different CCF threshold plotting in @fig-ccf-ROC.
+The ROC curve tells us the classifier used in our algorithm is good as it goes toward the upper left corner $(0, 1)$.
+We can also know that for a CCF threshold of 0.68,
+an FPR of less than 5% is achieved,
+with an FNR of about 23%.
+Increasing the CCF threshold to 0.78
+reduces the FPR to below 1%,
+while the FNR increases to about 40%.
+These results are comparable to other algorithmic similarity assessments of striation marks.
+
+
+![ROC curve for different CCF threshold.](../images/ccf_ROC.png){#fig-ccf-ROC width=45%}
+
+
+Last but not least,
+all features discussed before are wrapped and documented into functions with reproducible minor examples in our developmental `R` package `wire`
+<!-- as on @linToolsAnalyzingSimilarity2023, -->
+on GitHub,
+which will be submitted to `CRAN` afterward.
+
+
+# References {-}
+

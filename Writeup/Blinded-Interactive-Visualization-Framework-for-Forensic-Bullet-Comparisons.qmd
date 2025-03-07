@@ -1,0 +1,1114 @@
+---
+title: Interactive Visualization Framework for Forensic Bullet Comparisons
+# subtitle: This is the subtitle
+author:
+    #   Another author footnote, this is a very long footnote and it should be a really long footnote. But this footnote is not yet sufficiently long enough to make two lines of footnote text.
+        
+  - name: XXXXXXX
+    email: XXXXXXX
+    affiliations:
+        - id: 1
+          name: XXXXXXX
+          department: XXXXXXX
+          address: XXXXXXX
+    attributes:
+          corresponding: true
+  - name: XXXXXXX
+    email: XXXXXXX
+    affiliations:
+          
+        - id: 2
+          name: XXXXXXX
+          department: XXXXXXX
+          address: XXXXXXX
+    attributes:
+          corresponding: false
+    # note: |
+abstract: |
+  The current method for forensic analysis of bullet comparison relies on manual examination by forensic examiners to determine if bullets were discharged from the same firearm. This process is highly subjective, prompting the development of algorithmic methods to provide objective statistical support for comparisons. However, a gap exists between the technical understanding of these algorithms and the typical background of many forensic examiners. We present a visualization tool designed to bridge this gap, allowing for the presentation of statistical information in a more familiar format to forensic professionals. The forensic bullet comparison visualizer (FBCV) features a variety of plots that will enable the user to examine every step of the algorithmic comparison process. We demonstrate the utility of the FBCV by applying it to data from the Houston Science Lab, where it helped identify an error in the comparison process caused by mislabeling. This tool can be used for future investigations, such as examining how distance between shots affects scores. The FBCV offers a user-friendly way to convey complex statistical information to forensic examiners, facilitating their understanding and utilization of algorithmic comparison methods.
+  
+keywords: 
+  - data visualization
+  - interactive forensic modeling
+  - cross-correlation function
+  - land engraved area
+  - forensic pattern analysis
+  - forensic statistics
+date: last-modified
+bibliography: "bibliography.bib"
+format:
+  elsevier-pdf:
+    keep-tex: true
+    journal:
+      name: ASA Student Paper Competition
+      formatting: preprint #doubleblind
+      model: 5p
+      cite-style: number
+      # graphical-abstract: "![Overview of the data processing pipeline from the original scan (top left) to the extracted signal (bottom right).](../images/graphical_abstract.png){width=100%}"
+execute:
+  echo: false
+  warning: false
+  message: false
+  eval: true
+editor_options: 
+  chunk_output_type: console
+include-in-header:
+      - text: |
+          \usepackage{fancyhdr}
+          \setlength\intextsep{0pt} % spacing around figures
+          \setlength{\belowcaptionskip}{0pt}
+          \setlength{\textfloatsep}{5pt}
+          \setlength{\floatsep}{2pt}
+          \setlength{\dbltextfloatsep}{0pt}
+          \setlength\parskip{0pt}
+          \setlength\abovedisplayskip{-12pt}%
+          \setlength\belowdisplayskip{-12pt}%
+          \setlength\abovedisplayshortskip{-16pt}%
+          \setlength\belowdisplayshortskip{-16pt}%
+          \renewcommand\floatpagefraction{.99}
+          \renewcommand\topfraction{.99}
+          \newcommand{\thetool}{FBCV}
+---
+
+```{=tex}
+\clearpage
+\newpage
+```
+```{r citations, echo = FALSE, eval=FALSE}
+# run this code chunk to update citations
+keys <- rbbt::bbt_detect_citations(here::here("Writeup/Interactive-Visualization-Framework-for-Forensic-Bullet-Comparisons.qmd"))
+keys <- grep("fig-", keys, invert=TRUE, value = TRUE)
+rbbt::bbt_write_bib(keys=keys, 'bibliography.bib', overwrite = TRUE, library_id=rbbt::bbt_library_id('CSAFE'), translator='bibtex')
+```
+
+```{=tex}
+\setcounter{page}{1}
+\pagestyle{fancy}
+\fancyhead{} 
+\fancyfoot{} 
+\fancyhead[L]{\sc{Interactive Visualization Framework for Forensic Bullet Comparisons}}
+%\fancyhead[R]{N. Rethwisch}
+\fancyfoot[R]{\thepage}
+```
+```{r setup, echo = FALSE, eval = TRUE}
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+library(stringr)
+library(arsenal)
+library(bulletxtrctr)  
+library(x3ptools)
+library(randomForest)
+library(reshape2)
+library(plotly)
+library(htmlwidgets)
+set.seed(1) #For barrel vs. barrel comparisons across models
+
+main <- readr::read_csv(here::here("data/houston-all-comparisons.csv.zip"))
+
+csafe2 <- readRDS(here::here("models/csafe_rf2.rds")) # from DIB-Hamby data/csafe2.rds
+csafe3 <- readRDS(here::here("models/csafe_rf3.rds")) # from DIB-Hamby data/csafe3.rds
+
+
+houstonPairs <- main %>% group_by(source, barrel1, bullet1, barrel2, bullet2) %>% summarize(
+  ccf_score = mean(ccf[samesource], na.rm = TRUE), 
+  rf2_score = mean(rf2[samesource], na.rm = TRUE), 
+  rf3_score = mean(rf3[samesource], na.rm = TRUE), 
+  phase_ccf = ccf_score - mean(ccf[!samesource], na.rm = TRUE), 
+  phase_rf2 = rf2_score - mean(rf2[!samesource], na.rm = TRUE),
+  phase_rf3 = rf3_score - mean(rf3[!samesource], na.rm = TRUE)
+)
+
+```
+
+# Introduction and Background
+
+Identifying the firearm used in a crime is a critical component of forensic investigations and plays a pivotal role in criminal investigations. Ensuring evidence is appropriately identified is crucial in upholding the integrity of the criminal justice system.
+
+Current forensic practices rely on examiners to visually inspect bullets under a comparison microscope for similarities of marks on the bullets' surfaces. As a bullet is discharged from the firearm, the rifling in the barrel forces the bullet to follow the groove pattern like rails. Micro-imperfections in the barrel leave scratches (called *striations*) on the bullet's surface. Striations on land engraved areas (LEA; the area between two grooves) are assumed to be unique to the individual firearm. This allows forensic examiners to determine whether two bullets originate from the same source by seeing if these LEAs match [@afte]. However, this process is highly subjective, relying heavily on an examiner's expertise [@nas2009; @pcast]. These criticisms triggered the development of algorithmic comparisons [@carriquiryMachineLearningForensic2019; @chenFiredBulletSignature2019; @chuAutomaticIdentificationBullet2013; @juOpenSourceImplementationCMPS2022; @vorburgerApplicationsCrosscorrelationFunctions2011; @vorburgerTopographyMeasurementsApplications2015] to provide objective measures with the goal of augmenting an examiner's testimony.
+
+Algorithmic comparison methods have demonstrated considerable potential to quantify the similarity between pairwise pieces of evidence. However, current approaches have created a gap between the statistical metrics and the practical understanding of these metrics by practitioners. This gap highlights the need for a more effective method to assist forensic practitioners in assessing and understanding the algorithm's performance. 
+Here, we are proposing an interactive interface designed to visualize the  statistical metrics embedded in the context of the data [@wickhamVisualizingStatisticalModels2015] in a manner that is intuitive and accessible to forensic examiners. 
+The forensic bullet comparison visualizer (FBCV) combines a set of interactive visualizations, allowing forensic examiners to engage with the complex algorithmic data at each stage of the process, thereby bridging the gap between statistical analysis and practical forensic application.
+
+
+This paper  presents a short review of the algorithmic comparison process. We then discuss the choice of visuals in supporting diagnostics at each stage of the process. We also showcase the  diagnostic capabilities of these visuals by presenting a real-world use case where we successfully applied the FBCV to identify an error in the data-cleaning process.
+<!--We will also highlight other ways in which \thetool leverages existing comparative statistics, namely providing visualizations that can help assess whether model accuracy is affected by more shots being fired (i.e., comparing model accuracy for the first bullet to the 40th bullet fired versus comparing the first and second bullets fired). -->
+
+<!-- the data -->
+The data used for illustrating the process is a dataset of scans provided by a collaboration of CSAFE (Center for Statistics and Applications of Forensic Evidence) and the Houston Forensic Science Center (HFSC). The data consists of scans from 40 test fires of each of 13 Ruger LCP barrels. Ten barrels (labeled  'A' through 'J') were consecutively manufactured, while the remaining three (labeled 1-3) come from HFSC's reference library of firearms. Here, we are analyzing 40 sequential shots from each of the barrel. The lettered barrels were only fired ten times each before this study. For ease of notation, we refer to these shots as 11 through 50. LCP barrels are traditionally rifled barrels with 6 lands and 6 groove areas. These barrels mark well, i.e., striation marks are almost visible to the naked eye, making them well-suited for a forensic analysis. Scans of the bullets were obtained  <!-- by the High-Resolution Microscopy Lab at Iowa State University using a Sensofar confocal light microscope--> using a high-resolution confocal light microscope. For each bullet, 3d topographic images of each of the six land engraved areas (LEA) were acquired at 20x magnification (corresponding to 0.645 micron/pixel), resulting in a total of 3,120 LEA scans (13 barrels x 40 bullets x 6 lands).
+
+<!-- ## Algorithmic Comparisons -->
+
+These scans provide the basis for algorithmic comparisons.
+For the processing of scans and comparison of signals, we follow the steps outlined in @hareAutomaticMatchingBullet2017, implemented in the `bulletxtrctr` package in R [@hofmannBulletxtrctrAutomaticMatching2022]. 
+We apply the following steps to each of the 3,120 scans [steps 1-4] and each pair of scans [step 5]. The results from these comparisons were then rendered in our visualization framework [@sec-visuals].
+
+```{r}
+#| label: fig-extracted-sigs
+#| fig-env: "figure*"
+#| fig-cap: "Signal extraction from a 3d topographic scan. From left to right we see a rendering of a 3d topographic scan of a land-engraved area, the profile corresponding to the horizontal yellow line, and the signal resulting from removing the bullet curvature from the profile."
+  
+knitr::include_graphics("../figure/data-process.png")
+```
+
+
+```{r out.width='33%'}
+#| label: fig-aligned-sigs
+#| fig-cap: "Aligned Signals from lands of two separate bullets."
+#| fig-align: "center"
+knitr::include_graphics("../figure/Aligned signatures (1).png")
+
+```
+
+1.  A 3d LEA scan (left in @fig-extracted-sigs) is inspected for its suitability for comparisons, scans of low quality or of damaged lands (due to tank 'rash', pitting, or cracks) are removed from the analysis.
+
+2.  A crosscut is chosen orthogonal to the direction of well-marked striations (marked as a yellow line in the rendering of the scan left in @fig-extracted-sigs).
+
+3.  The topographical measurements corresponding to this crosscut are extracted from the scan. The middle plot in @fig-extracted-sigs shows the profile of these height measurements along the crosscut. The spike in height at either end of the profile indicates the start of the neighboring groove areas and need to be excluded from the comparison (values outside the vertical blue lines).  
+
+4. The signal for a LEA (shown on the right of @fig-extracted-sigs) is created by removing the bullet curvature from the profile using a non-parametric smooth [@clevelandRobustLocallyWeighted1979].
+ 
+5.  Finally, signals are aligned pairwise, as shown in @fig-aligned-sigs, and metrics assessing their similarity --such as  the number of matching peaks, height of matching peaks,  number of consecutively matching peaks, and, more statistically, cross-correlation-- are extracted.
+
+These metrics provide the basis of a quantifiable comparison of the strength of similarities with statistical models and algorithms. 
+Common examples of such algorithms include random forests [@hofmannBulletxtrctrAutomaticMatching2022] and congruent matching profile segments [@chenFiredBulletSignature2019; @juOpenSourceImplementationCMPS2022]. A large number of these algorithms are based on the maximized cross-correlation function between pairs of signals. This is the metric which we will use in this paper. However, this is not an actual restriction, any other similarity metric would work similarly well, with its usability only restricted by the metric's diagnostic ability.
+
+Assume that $X = \left\{X_t\right\}_{1 \le t \le N_X}$ and $Y = \left\{X_s\right\}_{1 \le s \le N_Y}$ are the observed surface measurements (signals) of two land engraved areas (with $N_X, N_Y$ the number of the respective observations). The correlation between $X$ and $Y$ is defined as the ratio of their covariance scaled by their respective variances: 
+<!-- -->
+$$
+\text{corr} (X, Y) = \frac{\text{Cov(X, Y)}}{\sqrt{\text{Var}(X) \text{Var}(Y)}}
+$$ 
+$Y^{(k)}$ defines the $k$th lag of $Y$ with $Y^{(k)}_s = Y_{k+s}$ with $k \in [-M, M]$ and $0 \le M < N_Y$. The choice of $M$ depends on the minimal number of values $N_Y-M$ used as a basis for an evaluation of the similarity of the two signals. With that we define the maximized cross-correlation function $CCF_{\text{max}} (X, Y)$ as
+<!-- -->
+$$
+CCF_{\text{max}} (X, Y) = \text{arg} \text{max}_{k \in [-M, M]} \text{corr}(X, Y^{(k)}).
+$$
+Here, we use $M=500$  for the alignment of signals. This corresponds to a horizontal shift of $\pm 500$ values (equal to $\pm 500 \times 0.645 \mu = .323 mm$) corresponding to about a quarter of a scan's width.
+
+
+<!-- Visualization Development -->
+
+When assessing the similarity of one bullet to another, a common approach is to assemble all scores from comparing pairs of lands in form of a square matrix and visualize it in form of a tile plot, see @fig-land-matrix. The fill color encodes the score (here, the ccf) between a pair of LEAs. Higher values indicate higher similarity, shown in shades of orange. Tiles filled with grey values indicate less similarity.  The two bullets shown in the example are known to have been fired through the same barrel. In this case, we expect six pairs of lands with high similarities (in-phase), while all other pairs (out-of phase) should result in low scores. This is exactly the pattern that can be seen in @fig-land-matrix. 
+
+```{r helper-functions}
+
+make_symmetric <- function(d) {
+  houstonP2 <- d
+  houstonP2$barrel1 <- d$barrel2
+  houstonP2$barrel2 <- d$barrel1
+  houstonP2$bullet1 <- d$bullet2
+  houstonP2$bullet2 <- d$bullet1
+  if ("land1" %in% names(d)) {
+    houstonP2$land1 <- d$land2
+    houstonP2$land2 <- d$land1
+  }
+  rbind(d, houstonP2)
+}
+```
+
+```{r fig-land-matrix, fig.cap = "Tile plot of all pairwise comparisons of LEA signals from two different bullets.", fig.width = 3, fig.height = 1.85, out.width='27%'}
+barrelA <- main %>% filter(barrel1=="A", barrel2=="A") 
+
+houstontemp <- barrelA %>%
+  filter(bullet2 == 14, bullet1 == 35)
+
+houstontemp %>%
+  ggplot(aes(x = land1, y = land2, fill = ccf)) + 
+  geom_tile() +
+  scale_fill_gradient2(low = "grey80", high = "darkorange", 
+                       midpoint = 0.5, limit = c(0, 1)) +
+  scale_colour_manual(values = c("grey80", "darkorange")) +
+  labs(x = "Bullet 1", y = "Bullet 2", fill = "Maximized Cross \nCorrelation") + 
+  theme(
+    axis.title.x = element_text(size = 8), 
+    axis.title.y = element_text(size = 8),
+    axis.text.x = element_text(size = 6),  
+    axis.text.y = element_text(size = 6),   
+    legend.text = element_text(size = 6),
+    legend.title = element_text(size = 6, hjust=0.5))
+
+```
+
+<!-- Numerical bullet-to-bullet score -->
+
+Numerically, we can summarise the matrix of pairwise LEA comparisons into a single statistic by calculating averages of selected comparisons. Here, we are using the (background-adjusted) maximum correlation score [@juOpenSourceImplementationCMPS2022] between bullets $B_1$ and $B_2$, given as the difference between the in-phase average and the out-of-phase average: 
+<!-- -->
+$$
+\mathrm{\overline{CCF}_{diff}}(B_1, B_2) = \underbrace{\left[  \frac{1}{n} \sum_{(i,j) \in \mathcal{P}} c_{ij}\right]}_{\text{in-phase average}} - \underbrace{\left[  \frac{1}{n(n-1)} \sum_{(i,j) \notin \mathcal{P}} c_{ij}\right]}_{\text{out-of-phase average}},
+$$
+where $c_{ij}$ is the score between land $i$ on bullet 1 and land $j$ on bullet 2, with $1 \le i, j \le n=6$, where ${\cal P}$ denotes the pairs of lands that capture the best alignment between bullets $B_1$ and $B_2$.
+
+A pairwise comparison of $K$ number of bullets results in a set of scores of size $^KC_2 = \frac{1}{2}K(K-1)$ or $^KC_2 + K$, if we also consider to allow a comparison of a bullet to itself (done to achieve an empirical assessment of the range of scores we can expect to see for a particular type of ammunition and firearm). Different types of visualizations of these set of scores are discussed in the next section.
+
+<!--The in-phase score is represented by the mean of the diagonal with the highest average score, while the out-of-phase score is represented by all 30 observations not included in the in-phase diagonal.-->
+
+# Visualization Framework{#sec-visuals}
+
+![Three connected levels of information. From left to right, there is a tile plot of scores from all bullets in one barrel, a tile plot of scores at the land-level for one pair of bullets, and a set of diagnostic plots for comparing a single pair of lands.](..\figure\overview.png){#fig-tool-pipeline}
+
+As seen in the previous section, there are similarity scores at the bullet-to-bullet level, there are scores at the land-to-land level, and there are important diagnostics for individual pairs of lands. For any given comparison, we have pertinent information at each of these levels (see @fig-tool-pipeline).
+The statistical perspective focuses on scores within the distribution of other, comparable scores, while the focus in a forensic examination is on the individual.
+The idea of this visualization tool is to connect these different levels and perspectives for a seamless exploration. 
+<!--
+We developed an interactive visualization tool that offers a graphical representation of this maximum phase score, enabling large-scale analysis and a deeper understanding of individual metrics. 
+This pipeline is shown in @fig-tool-pipeline.
+-->
+<!-- ## Max Phase Correlation Score-->
+<!--
+Of particular interest is drawing inferences on algorithmic results among many pairwise comparisons related to each firearm. Current visualization techniques analyze how six LEAs from one bullet compare against six LEAs from another. While this is an effective way to visualize the validity of algorithmic comparisons between two bullets, this method is less than adequate when there a large number of bullets are fired, such as the $^{40}P_2 = 1560$ comparisons seen per bullet in the Houston dataset. 
+This statistic allows for a comprehensive overview of how algorithmic comparisons are performing on the data as a whole, providing opportunities for analysis of accuracy over the entirety of the Houston dataset, as well as providing key information on performance deviation over time.
+-->
+The forensic bullet comparison visualizer (FBCV) is created in HTML using a combination of Javascript and R code. This allows us to leverage the everyday familiarity of links for implementing connections across levels of information. An implementation of the FBCV showing all comparisons involving bullets from barrel A can be found at https://tinyurl.com/y53n3mkm. 
+
+```{r}
+#| label: fig-framework-interface
+#| fig-cap: "Tabs in the Interface framework"
+knitr::include_graphics("../figure/FrameworkInterface.png")
+```
+<!-- -->
+The main interface of the FBCV consists of a set of tabs with choices for the visualization of the set of bullet scores, see @fig-framework-interface,
+<!--Each tab shows an interactive visualization that focuses on a different aspect of the data--> discussed in more detail next.
+\hfill\newline
+<!-- ## Tile plots -->
+**Tile plots** are our default choice for visualizing all bullet comparisons. @fig-barrel-matrix shows the 40x40 matrix  of all pairwise bullet comparisons in for barrel A and same-bullet scores on the diagonal. Each row and column corresponds to the bullet involved in the comparison, each cell represents the maximum phase correlation score for the respective comparison.
+
+```{r fig-barrel-matrix, echo = FALSE, eval = TRUE, fig.cap = "Tile plot of the scores of all pairwise  comparisons of the 40 sequential  bullets fired from barrel A", fig.width = 3.5, fig.height = 2.15}
+
+
+barrelA <- houstonPairs %>% 
+  filter(source == "houston-comparisons.csv.zip",
+         barrel1 == "A", barrel2=="A")
+
+barrelA <- make_symmetric(barrelA)
+
+#######################################Plots#################################
+#ccf score
+
+matrix <- barrelA %>%
+  ggplot(aes(x = bullet1, y = bullet2, fill = ccf_score)) + 
+  geom_tile() +
+  scale_fill_gradient2(low = "grey80", high = "darkorange", 
+                       midpoint = 0.5, limit = c(0, 1)) +
+  scale_colour_manual(values = c("grey80", "darkorange")) +
+  scale_x_discrete(breaks = as.character(c(11, seq(15, 50, by = 5))), name = "Bullet 1") +
+  scale_y_discrete(breaks = as.character(c(11, seq(15, 50, by = 5))), name = "Bullet 2") +
+  labs(x = "Bullet 1", y = "Bullet 2", fill = "Max Phase \nCorrelation Score") + 
+  theme(
+        axis.title.x = element_text(size = 10), 
+        axis.title.y = element_text(size = 10),
+        legend.title = element_text(size = 8, hjust=0.5))
+
+matrix
+```
+
+Note that this matrix is not static: the spatial area of each tile maps interactively to the corresponding 6x6 land-to-land tile plot, such as the one in @fig-land-matrix. When a user clicks on a square in the 40x40 matrix, the FBCV retrieves the corresponding 6x6 matrix of land-to-land scores, giving users more details on the land-to-land comparisons that contribute to the score of the selected square.
+
+The interactivity extends beyond the 6x6 matrix. By clicking on an individual square within this matrix, additional information is provided for the two LEAs and their comparison: renderings of the two LEA scans with marked crosscut locations, plots of their profiles, and the aligned signals.
+These web links directly map the different levels of comparisons as shown in @fig-tool-pipeline to individual comparisons and allow the user to move naturally between abstraction levels. 
+
+Ordering rows and columns in tile plots has a large impact on the visualization. By clicking the *Clustered* subtab, the user can view an altered version of the original 40x40 tile plot. The ordering of the rows and columns is based on a complete-linkage hierarchical clustering of the score matrix. In @fig-ClusteredMatrix we see two fairly distinct clusters. This version of the tile plot groups bullets by their similarity, which helps to identify any significant performance discrepancies in the data. The order of the bullets in @fig-ClusteredMatrix follows the order of the dendrogram in @fig-dendrogram. Also note that the interactivity of the clustered tile plot is the same as for the original plot.
+
+
+<!--An example of this new clustering is shown in @fig-ClusteredMatrix. The ordering of the bullets in the matrix follows the ordering of the clustered dendrogram, displayed in @fig-dendrogram. -->
+
+```{r fig-ClusteredMatrix, fig.cap = "Re-ordered tile plot for barrel A scores. ", fig.width = 4.1, fig.height = 2.75, out.width='40%', fig.align='center'}
+
+#Filtering out the barrel and selecting what is used in the cluster
+houstonPredict <- barrelA %>% ungroup() %>% select(ccf_score, bullet1, bullet2) %>% mutate(bullet1 = as.factor(bullet1), bullet2 = as.factor(bullet2))%>%unique()
+
+
+houstonPredict <- houstonPredict  %>%mutate(bullet1 = reorder(bullet1, ccf_score), bullet2 = reorder(bullet2, ccf_score)) %>%arrange(bullet1, bullet2)
+
+houston_wide_a <- houstonPredict %>%
+  pivot_wider(values_from="ccf_score", names_from="bullet2")
+
+#Performing the clustering
+rn <- houston_wide_a[,1]
+dist_matrix <- as.dist(1-houston_wide_a[,-1])
+hc <- hclust(dist_matrix, method="complete")
+
+cut <- cutree(hc, k = 2)
+
+
+################Function for reordering the matrix####################
+houston_matrix <- as.data.frame(houston_wide_a)
+makeSymm <- function(m) {
+  m[upper.tri(m)] <- t(m)[upper.tri(m)]
+  return(m)
+}
+
+
+
+#Making the matrix a full matrix
+#rownames are bullet 1, column names are bullet 2
+rownames(houston_matrix) <- houston_matrix$bullet1
+houston_matrix <- houston_matrix[,-1]
+houston_matrix <- makeSymm(houston_matrix)
+
+#Reordering the matrix
+houston_matrix <- houston_matrix[hc$order, hc$order]
+
+
+#Changing it back to a lower matrix
+
+houston_matrix$bullet1 <- row.names(houston_matrix)
+melted_matrix <- melt(houston_matrix, na.rm = TRUE, id = "bullet1")
+
+
+#houston_matrix[upper.tri(houston_matrix)] <- NA
+colnames(melted_matrix) <- c("bullet1", "bullet2", "ccf_score")
+
+############ Plotting the newly ordered matrix##################
+matrixPlot <- ggplot(melted_matrix, aes(fct_inorder(bullet1),bullet2, fill = ccf_score))+
+  geom_tile()+
+  labs(x = "bullet1")+
+  scale_fill_gradient2(low = "grey80", high = "darkorange", 
+                       midpoint = 0.5, limit = c(0,1))+
+  xlab("Bullet 1") + ylab("Bullet 2") + labs(fill = "Max Phase \nCorrelation Score")+ 
+  scale_x_discrete(labels = NULL) + 
+  scale_y_discrete(labels = NULL) + 
+  theme(
+    axis.title.x = element_text(size = 10), 
+    axis.title.y = element_text(size = 10),
+    legend.title.align = 0.5,
+    legend.title = element_text(size = 8))
+
+matrixPlot
+```
+
+```{r dendrogram, include=FALSE, fig.cap = "The dendrogram for hierarchical clustering"}
+#dend <- as.dendrogram(hc)
+# plot(hc,
+#      cex = 0.8,
+#      main = "",
+#      xlab = "",
+#      ylab = "",
+#      sub = "")
+
+#Export this to png and then crop off the extra whitespace
+```
+
+![The dendrogram for hierarchical clustering](../figure/dendrogram.png){#fig-dendrogram}
+
+
+<!-- The clustered matrix retains the same interactive pipeline as the unclustered matrix. By clicking on a specific box within the clustered matrix, the user is directed to the corresponding 6x6 matrix, which then links to additional information regarding the land-specific comparisons. -->
+
+<!-- -->
+\hfill\newline
+<!-- ## Scatterplots -->
+**Scatterplots** provide an alternative representation of the scores: @fig-scatterplot shows an example of the default scatterplot. The first bullet in the comparison is represented on the x-axis, while the associated maximum phase correlation score is displayed on the y-axis. Additionally, we use color to represent the shot number of the second bullet. When the user hovers over a point, all other points containing the second bullet in the comparison are highlighted. This enables the user to identify bullets with poor scores across the dataset or those exhibiting similar patterns across all comparisons. 
+
+```{r out.width='40%', fig.align='center'}
+#| label: fig-scatterplot
+#| fig-cap: "An interactive scatterplot for bullet comparisons"
+knitr::include_graphics("../figure/scatterA.png")
+```
+
+Clicking on a point again brings up the 6x6 matrix of land-to-land comparisons resulting in the selected point's score.
+<!--
+The same interactive functionality as the matrices is also incorporated in these scatterplots. Each point is linked to a 6x6 matrix comparison through Plotly functionality in Javascript. When a user clicks on a point, they are directed to the relevant 6x6 matrix hosted on GitHub. The pipeline from this point follows the same structure as the matrices - clicking on a square within the 6x6 matrix provides further information about how the bullet was processed and cleaned.
+-->
+
+Clicking on the *lineplot* tab brings up the same scatterplot, with the key distinction that points representing the same second bullet in the comparison are connected by a line. This visualization helps to emphasize the relationships and trends between the points that share the same bullet.
+<!-- -->
+\hfill\newline
+**Variograms** are used to represent values as a function of the  distance. In this context, the variogram illustrates how the similarity of bullets is affected by the number of bullets fired between them, shown in @fig-variogramA. The x-axis represents the numerical distance between shots (11 vs. 12 corresponds to a distance of 1, while 11 vs. 50 is a distance of 39). The y-axis represents the algorithmic score between the bullets. The blue line shows a loess fit to capture the main trend. Clicking on any point within the variogram leads to the same interactive pipeline as the scatterplots and other visualizations.
+
+```{r fig-variogramA, fig.cap = "The variogram included in the visualization framework"}
+houstonPairs$bullet1 <- as.integer(houstonPairs$bullet1)
+houstonPairs$bullet2 <- as.integer(houstonPairs$bullet2)
+
+houstonPairs$bulletDistance <- houstonPairs$bullet1 - houstonPairs$bullet2
+
+barrel_name <- "A"
+
+variogramA <- houstonPairs %>% group_by(bulletDistance) %>% 
+  #summarise(ccf_score = mean(ccf_score)) %>%
+  filter(bulletDistance > 0, barrel1 == barrel_name)%>%
+  ggplot(aes(x = bulletDistance, y = ccf_score, text1 = bullet1, text2 = bullet2)) + geom_jitter(alpha = 0.5) +geom_smooth(se = FALSE, method = "loess")+
+  xlab("Distance Between Shots") + ylab("Max Phase Correlation Score")+
+  theme(
+    axis.title.x = element_text(size = 10), 
+    axis.title.y = element_text(size = 10),
+    legend.title.align = 0.5,
+    legend.title = element_text(size = 8))
+
+variogramA
+```
+
+These visualizations are integrated into a single HTML webpage, providing a comprehensive view of the data and offering accessible insights into scores. <!--By combining interactive tools such as matrices, scatterplots, line plots, and variograms, users can effectively explore and identify data patterns.--> 
+
+# Use Cases
+
+## The Case of Barrel D
+
+The provided visualizations have shown scores for barrel A, but not all firearms displayed such straight-forward results. One such case was the scores for barrel D. After running the pairwise comparisons and analyzing the visualization framework, it became apparent that there was an error in the analysis for bullets 35-40. These bullets performed well when compared to each other but did not score highly compared to the other bullets shot from this firearm, as shown in @fig-matrixD-1.
+
+<!--::: {#fig-matrixD layout="[24, -3, 24, -3, 24, -3, 24]" fig-env="figure*"}-->
+
+```{r fig-matrixD2Old, fig.cap = "40x40 comparison matrix for firearm D", fig.width = 4.1, fig.height = 2.75}
+barrelD <- houstonPairs %>% filter(barrel1 == "D", barrel2=="D")
+barrelD <- make_symmetric(barrelD)
+
+matrix <- barrelD %>%
+  filter(source == "houston-comparisons.csv.zip") %>%
+  ggplot(aes(x = factor(bullet1), y = factor(bullet2), fill = ccf_score)) + 
+  geom_tile() +
+  scale_fill_gradient2(low = "grey80", high = "darkorange", 
+                       midpoint = 0.5, limit = c(0, 1)) +
+  scale_colour_manual(values = c("grey80", "darkorange")) +
+  scale_x_discrete(breaks = as.character(c(11, 33, 35, 37, 40, 50)), name = "Bullet 1") +
+  scale_y_discrete(breaks = as.character(c(11, 33, 35, 37, 40, 50)), name = "Bullet 2") +
+  labs(x = "Bullet 1", y = "Bullet 2", fill = "Max Phase \nCorrelation Score") + 
+  theme(
+        axis.title.x = element_text(size = 10), 
+        axis.title.y = element_text(size = 10),
+        legend.title.align = 0.5,
+        legend.title = element_text(size = 8))
+
+matrixD <- matrix
+```
+
+<!--
+```{r fig-matrixD-GroovesOld, fig.cap = "40x40 matrix with scans of groove-engraved areas", fig.width = 4.1, fig.height = 2.75}
+
+houstonD2 <- houstonPairs %>% 
+  filter(source %in% c("houston-comparisons.csv.zip", "houston-comparisons-D2.csv")) %>%
+  filter(barrel1 %in% c("D", "D2"), barrel2 %in% c("D", "D2")) %>% ungroup()
+
+
+houstonD2 <- houstonD2 %>% make_symmetric() 
+
+  #Filtering out lands or grooves for the affected areas so we don't track both changes CHANGE EACH TIME
+houstonD2 <- houstonD2 %>% filter(
+  !(bullet1 %in% c(33:36) & source=="houston-comparisons.csv.zip"), 
+  !(bullet2 %in% c(33:36) & source=="houston-comparisons.csv.zip"))
+
+
+  houstonD2 <- houstonD2%>%filter(!(barrel1 == "BD" & barrel2 == "BD2" &
+                         bullet1 %in% c(33,34,35,36) & bullet2 %in% c(33,34,35,36)))
+  houstonD2 <- houstonD2%>%filter(!(barrel1 == "BD2" & barrel2 == "BD" &
+                                      bullet1 %in% c(33,34,35,36) & bullet2 %in% c(33,34,35,36)))
+  
+  
+  matrix <- houstonD2 %>%
+  ggplot(aes(x = bullet1, y = bullet2, fill = ccf_score)) + 
+  geom_tile() +
+  scale_fill_gradient2(low = "grey80", high = "darkorange", 
+                       midpoint = 0.5, limit = c(0, 1)) +
+  scale_colour_manual(values = c("grey80", "darkorange")) +
+  scale_x_discrete(breaks = as.character(c(11, 33, 35, 37, 40, 50)), name = "Bullet 1") +
+  scale_y_discrete(breaks = as.character(c(11, 33, 35, 37, 40, 50)), name = "Bullet 2") +
+  labs(x = "Bullet 1", y = "Bullet 2", fill = "Max Phase \nCorrelation Score") + 
+  theme(
+        axis.title.x = element_text(size = 10), 
+        axis.title.y = element_text(size = 10),
+        legend.title.align = 0.5,
+        legend.title = element_text(size = 8)) 
+
+  matrixDGrooves <- matrix
+  
+```
+-->
+
+
+
+
+
+```{r fig-matrixD-Grooves, fig.cap = "Intrafirearm Matrix With Rescanned Grooves", fig.width = 5, fig.height = 3.5}
+#Preprocessinng
+  houston <- readr::read_csv(here::here("data/houston-comparisons.csv.zip"))
+  houstonD2 <- readr::read_csv(here::here("data/houston-comparisons-D2.csv"))
+  
+   houstonD2 <- houstonD2 %>% 
+    mutate(
+      id1 = land1,
+      id2 = land2
+    ) %>%
+    separate_wider_delim(
+      land1, delim="-", names = c("study1", "barrel1", "bullet1", "land1")
+    ) %>%
+    separate_wider_delim(
+      land2, delim="-", names = c("study2", "barrel2", "bullet2", "land2")
+    )
+
+  
+  #Filtering the data for joining
+  houston <- houston%>%filter(barrel1 == "BD")
+  houston <- houston%>%filter(!bullet1 %in% c("B33", "B34", "B35", "B36"))
+  houston <- houston%>%filter(!bullet2 %in% c("B33", "B34", "B35", "B36"))
+  houston <- houston[,1:38]
+  
+  houstonD2 <- houstonD2%>%select(-id1, -id2)
+  
+  
+   houstonP2 <- houstonD2
+   houstonP2$bullet1 <- houstonD2$bullet2
+   houstonP2$bullet2 <- houstonD2$bullet1
+   houstonP2$land1 <- houstonD2$land2
+   houstonP2$land2 <- houstonD2$land1
+   houstonP2$barrel1 <- houstonD2$barrel2
+   houstonP2$barrel2 <- houstonD2$barrel1
+   houstonP2 <- rbind(houstonD2, houstonP2)
+   houstonP2 <- unique(houstonP2)
+  
+  houston<- rbind(houston, houstonP2)
+  
+  #Making the barrel information more accessible
+  houston$bullet1 <- gsub("B", "", houston$bullet1)
+  houston$bullet2 <- gsub("B", "", houston$bullet2)
+
+  houston$rf2 <- predict(csafe2, newdata=houston, type="prob")[,2]
+  houston$rf3 <- predict(csafe3, newdata=houston, type="prob")[,2]
+  
+  #Filtering out lands or grooves for the affected areas so we don't track both changes CHANGE EACH TIME
+  houston <- houston %>% filter(!(land1 %in% c("L1", "L2", "L3", "L4", "L5", "L6") & bullet1 %in% c(33:36)))
+  houston <- houston %>% filter(!(land2 %in% c("L1", "L2", "L3", "L4", "L5", "L6") & bullet2 %in% c(33:36)))
+  
+  
+  #
+  houston_group <- houston%>%group_by(barrel1, bullet1, barrel2, bullet2, samesource)%>% summarise(mean_ccf = mean(ccf), mean_rf2 = mean(rf2), mean_rf3 = mean(rf3))
+  houstonPairs <- data.frame()
+  n = dim(houston_group)[1]
+  k = 1
+  for (i in 1:(n-1)){
+    j = i + 1
+    if (houston_group$barrel1[i] == houston_group$barrel1[j] && houston_group$barrel2[i] == houston_group$barrel2[j] && 
+        houston_group$bullet2[i] == houston_group$bullet2[j] && houston_group$bullet1[i] == houston_group$bullet1[j] && 
+        houston_group$samesource[i] != houston_group$samesource[j]){
+      barrel1 <- houston_group$barrel1[i]
+      barrel2 = houston_group$barrel2[i]
+      bullet1 = houston_group$bullet1[i]
+      bullet2 = houston_group$bullet2[i]
+      ccf_score  = houston_group$mean_ccf[j]
+      rf2_score  = houston_group$mean_rf2[j]
+      rf3_score = houston_group$mean_rf3[j]
+      phase_ccf = houston_group$mean_ccf[j] - houston_group$mean_ccf[i]
+      phase_rf2 = houston_group$mean_rf2[j] - houston_group$mean_rf2[i]
+      phase_rf3 = houston_group$mean_rf3[j] - houston_group$mean_rf3[i]
+      houstonPairs <- rbind(houstonPairs, data.frame(barrel1, barrel2, bullet1, bullet2, phase_ccf, phase_rf2, phase_rf3, ccf_score, rf2_score, rf3_score))
+    }
+  }
+  
+  
+  houstonP2 <- houstonPairs
+  houstonP2$bullet1 <- houstonPairs$bullet2
+  houstonP2$bullet2 <- houstonPairs$bullet1
+  houstonP2$land1 <- houstonPairs$land2
+  houstonP2$land2 <- houstonPairs$land1
+  houstonP2$barrel1 <- houstonPairs$barrel2
+  houstonP2$barrel2 <- houstonPairs$barrel1
+  houstonP2 <- rbind(houstonPairs, houstonP2)
+  
+  houstonP2 <- houstonP2%>%filter(!(barrel1 == "BD" & barrel2 == "BD2" &
+                         bullet1 %in% c(33,34,35,36) & bullet2 %in% c(33,34,35,36)))
+  houstonP2 <- houstonP2%>%filter(!(barrel1 == "BD2" & barrel2 == "BD" &
+                                      bullet1 %in% c(33,34,35,36) & bullet2 %in% c(33,34,35,36)))
+  
+  
+  matrix <- houstonP2 %>%
+  ggplot(aes(x = bullet1, y = bullet2, fill = ccf_score)) + 
+  geom_tile() +
+  scale_fill_gradient2(low = "grey80", high = "darkorange", 
+                       midpoint = 0.5, limit = c(0, 1)) +
+  scale_colour_manual(values = c("grey80", "darkorange")) +
+  scale_x_discrete(breaks = as.character(c(11, 33, 35, 37, 40, 50)), name = "Bullet 1") +
+  scale_y_discrete(breaks = as.character(c(11, 33, 35, 37, 40, 50)), name = "Bullet 2") +
+  labs(x = "Bullet 1", y = "Bullet 2", fill = "Max Phase \nCorrelation Score") + 
+  theme(
+        axis.title.x = element_text(size = 10), 
+        axis.title.y = element_text(size = 10),
+        legend.title.align = 0.5,
+        legend.title = element_text(size = 8))
+  matrixDGrooves <- matrix
+```
+
+
+
+```{r fig-matrixD-Replacement, fig.cap = "Replacing Bullets 33-36 of Barrel C from Barrel D", fig.width = 4.1, fig.height = 2.75}
+houston <- readr::read_csv(here::here("data/houston-comparisons.csv.zip"))
+houstonD2 <- readr::read_csv(here::here("data/houston-comparisons-D2.csv"))
+
+  
+  # houston <- houston %>% 
+  #   mutate(
+  #     id1 = land1,
+  #     id2 = land2
+  #   ) %>%
+  #   separate_wider_delim(
+  #     land1, delim="-", names = c("study1", "barrel1", "bullet1", "land1")
+  #   ) %>%
+  #   separate_wider_delim(
+  #     land2, delim="-", names = c("study2", "barrel2", "bullet2", "land2")
+  #   )
+  
+  houstonD2 <- houstonD2 %>% 
+    mutate(
+      id1 = land1,
+      id2 = land2
+    ) %>%
+    separate_wider_delim(
+      land1, delim="-", names = c("study1", "barrel1", "bullet1", "land1")
+    ) %>%
+    separate_wider_delim(
+      land2, delim="-", names = c("study2", "barrel2", "bullet2", "land2")
+    )
+  
+  #Filtering the data for joining
+  houston <- houston%>%filter(barrel1 == "BD")
+  houston <- houston%>%filter(!bullet1 %in% c("B33", "B34", "B35", "B36"))
+  houston <- houston%>%filter(!bullet2 %in% c("B33", "B34", "B35", "B36"))
+#  houston <- houston%>%select(-X)
+  houston <- houston[,1:38]
+  
+  houstonD2 <- houstonD2%>%select(-id1, -id2)
+  
+  
+   houstonP2 <- houstonD2
+   houstonP2$bullet1 <- houstonD2$bullet2
+   houstonP2$bullet2 <- houstonD2$bullet1
+   houstonP2$land1 <- houstonD2$land2
+   houstonP2$land2 <- houstonD2$land1
+   houstonP2$barrel1 <- houstonD2$barrel2
+   houstonP2$barrel2 <- houstonD2$barrel1
+   houstonP2 <- rbind(houstonD2, houstonP2)
+   houstonP2 <- unique(houstonP2)
+  
+  houston<- rbind(houston, houstonP2)
+  
+  #Making the barrel information more accessible
+  houston$bullet1 <- gsub("B", "", houston$bullet1)
+  houston$bullet2 <- gsub("B", "", houston$bullet2)
+# 
+#   
+
+  houston$rf2 <- predict(csafe2, newdata=houston, type="prob")[,2]
+  houston$rf3 <- predict(csafe3, newdata=houston, type="prob")[,2]
+  
+  #Filtering out lands or grooves for the affected areas so we don't track both changes CHANGE EACH TIME
+  houston <- houston %>% filter(!(land1 %in% c("G1", "G2", "G3", "G4", "G5", "G6") & bullet1 %in% c(33:36)))
+  houston <- houston %>% filter(!(land2 %in% c("G1", "G2", "G3", "G4", "G5", "G6") & bullet2 %in% c(33:36)))
+  
+houstonPairs <- houston %>% group_by(barrel1, bullet1, barrel2, bullet2) %>% summarize(
+  ccf_score = mean(ccf[samesource]), 
+  rf2_score = mean(rf2[samesource]), 
+  rf3_score = mean(rf3[samesource]), 
+  phase_ccf = ccf_score - mean(ccf[!samesource]), 
+  phase_rf2 = rf2_score - mean(rf2[!samesource]),
+  phase_rf3 = rf3_score - mean(rf3[!samesource])
+)
+  
+  #
+  # houston_group <- houston%>%group_by(barrel1, bullet1, barrel2, bullet2, samesource)%>% summarise(mean_ccf = mean(ccf), mean_rf2 = mean(rf2), mean_rf3 = mean(rf3))
+  # houstonPairs <- data.frame()
+  # n = dim(houston_group)[1]
+  # k = 1
+  # for (i in 1:(n-1)){
+  #   j = i + 1
+  #   if (houston_group$barrel1[i] == houston_group$barrel1[j] && houston_group$barrel2[i] == houston_group$barrel2[j] && 
+  #       houston_group$bullet2[i] == houston_group$bullet2[j] && houston_group$bullet1[i] == houston_group$bullet1[j] && 
+  #       houston_group$samesource[i] != houston_group$samesource[j]){
+  #     barrel1 <- houston_group$barrel1[i]
+  #     barrel2 = houston_group$barrel2[i]
+  #     bullet1 = houston_group$bullet1[i]
+  #     bullet2 = houston_group$bullet2[i]
+  #     ccf_score  = houston_group$mean_ccf[j]
+  #     rf2_score  = houston_group$mean_rf2[j]
+  #     rf3_score = houston_group$mean_rf3[j]
+  #     phase_ccf = houston_group$mean_ccf[j] - houston_group$mean_ccf[i]
+  #     phase_rf2 = houston_group$mean_rf2[j] - houston_group$mean_rf2[i]
+  #     phase_rf3 = houston_group$mean_rf3[j] - houston_group$mean_rf3[i]
+  #     houstonPairs <- rbind(houstonPairs, data.frame(barrel1, barrel2, bullet1, bullet2, phase_ccf, phase_rf2, phase_rf3, ccf_score, rf2_score, rf3_score))
+  #   }
+  # }
+  # 
+  
+  houstonP2 <- houstonPairs
+  houstonP2$bullet1 <- houstonPairs$bullet2
+  houstonP2$bullet2 <- houstonPairs$bullet1
+  houstonP2$land1 <- houstonPairs$land2
+  houstonP2$land2 <- houstonPairs$land1
+  houstonP2$barrel1 <- houstonPairs$barrel2
+  houstonP2$barrel2 <- houstonPairs$barrel1
+  houstonP2 <- rbind(houstonPairs, houstonP2)
+  
+  houstonP2 <- houstonP2%>%filter(!(barrel1 == "BD" & barrel2 == "BD2" &
+                         bullet1 %in% c(33,34,35,36) & bullet2 %in% c(33,34,35,36)))
+  houstonP2 <- houstonP2%>%filter(!(barrel1 == "BD2" & barrel2 == "BD" &
+                                      bullet1 %in% c(33,34,35,36) & bullet2 %in% c(33,34,35,36)))
+  
+  
+  matrix <- houstonP2 %>%
+  ggplot(aes(x = bullet1, y = bullet2, fill = ccf_score)) + 
+  geom_tile() +
+  scale_fill_gradient2(low = "grey80", high = "darkorange", 
+                       midpoint = 0.5, limit = c(0, 1)) +
+  scale_colour_manual(values = c("grey80", "darkorange")) +
+  scale_x_discrete(breaks = as.character(c(11, 33, 35, 37, 40, 50)), name = "Bullet 1") +
+  scale_y_discrete(breaks = as.character(c(11, 33, 35, 37, 40, 50)), name = "Bullet 2") +
+  labs(x = "Bullet 1", y = "Bullet 2", fill = "Max Phase \nCorrelation Score") + 
+  theme(
+        axis.title.x = element_text(size = 10), 
+        axis.title.y = element_text(size = 10),
+        legend.title.align = 0.5,
+        legend.title = element_text(size = 8))
+
+  matrixDreplacement <- matrix
+  
+```
+<!-- -->
+```{r fig-matrixC-D, fig.cap = "Bullet-to-Bullet matrix for firearm C with replaced comparisons from firearm D", fig.width = 4.1, fig.height = 2.75}
+  houston <- readr::read_csv(here::here("data/houston-comparisons.csv.zip"))
+  houstonD2 <- readr::read_csv(here::here("data/houston-comparisons-CD.csv"))
+
+
+  
+  # houston <- houston %>% 
+  #   mutate(
+  #     id1 = land1,
+  #     id2 = land2
+  #   ) %>%
+  #   separate_wider_delim(
+  #     land1, delim="-", names = c("study1", "barrel1", "bullet1", "land1")
+  #   ) %>%
+  #   separate_wider_delim(
+  #     land2, delim="-", names = c("study2", "barrel2", "bullet2", "land2")
+  #   )
+  
+  houstonD2 <- houstonD2 %>% 
+    mutate(
+      id1 = land1,
+      id2 = land2
+    ) %>%
+    separate_wider_delim(
+      land1, delim="-", names = c("study1", "barrel1", "bullet1", "land1")
+    ) %>%
+    separate_wider_delim(
+      land2, delim="-", names = c("study2", "barrel2", "bullet2", "land2")
+    )
+  
+  #Filtering the data for joining
+  houston <- houston%>%filter(barrel1 == "BC")
+  houston <- houston%>%filter(!bullet1 %in% c("B35", "B36", "B37", "B38", "B39", "B40"))
+  houston <- houston%>%filter(!bullet2 %in% c("B35", "B36", "B37", "B38", "B39", "B40"))
+#  houston <- houston%>%select(-X)
+  houston <- houston[,1:38]
+  
+  houstonD2 <- houstonD2%>%select(-id1, -id2)
+  
+  
+   houstonP2 <- houstonD2
+   houstonP2$bullet1 <- houstonD2$bullet2
+   houstonP2$bullet2 <- houstonD2$bullet1
+   houstonP2$land1 <- houstonD2$land2
+   houstonP2$land2 <- houstonD2$land1
+   houstonP2$barrel1 <- houstonD2$barrel2
+   houstonP2$barrel2 <- houstonD2$barrel1
+   houstonP2 <- rbind(houstonD2, houstonP2)
+   houstonP2 <- unique(houstonP2)
+  
+  houston<- rbind(houston, houstonP2)
+  
+  #Making the barrel information more accessible
+  houston$bullet1 <- gsub("B", "", houston$bullet1)
+  houston$bullet2 <- gsub("B", "", houston$bullet2)
+
+  
+  houston$rf2 <- predict(csafe2, newdata=houston, type="prob")[,2]
+  houston$rf3 <- predict(csafe3, newdata=houston, type="prob")[,2]
+  
+  #Filtering out lands or grooves for the affected areas so we don't track both changes CHANGE EACH TIME
+  houston <- houston %>% filter(!(land1 %in% c("G1", "G2", "G3", "G4", "G5", "G6") & bullet1 %in% c(35:40)))
+  houston <- houston %>% filter(!(land2 %in% c("G1", "G2", "G3", "G4", "G5", "G6") & bullet2 %in% c(35:40)))
+  
+  
+  houstonPairs <- houston %>% group_by(barrel1, bullet1, barrel2, bullet2) %>% summarize(
+  ccf_score = mean(ccf[samesource]), 
+  rf2_score = mean(rf2[samesource]), 
+  rf3_score = mean(rf3[samesource]), 
+  phase_ccf = ccf_score - mean(ccf[!samesource]), 
+  phase_rf2 = rf2_score - mean(rf2[!samesource]),
+  phase_rf3 = rf3_score - mean(rf3[!samesource])
+)
+  
+  #
+  # houston_group <- houston%>%group_by(barrel1, bullet1, barrel2, bullet2, samesource)%>% summarise(mean_ccf = mean(ccf), mean_rf2 = mean(rf2), mean_rf3 = mean(rf3))
+  # houstonPairs <- data.frame()
+  # n = dim(houston_group)[1]
+  # k = 1
+  # for (i in 1:(n-1)){
+  #   j = i + 1
+  #   if (houston_group$barrel1[i] == houston_group$barrel1[j] && houston_group$barrel2[i] == houston_group$barrel2[j] && 
+  #       houston_group$bullet2[i] == houston_group$bullet2[j] && houston_group$bullet1[i] == houston_group$bullet1[j] && 
+  #       houston_group$samesource[i] != houston_group$samesource[j]){
+  #     barrel1 <- houston_group$barrel1[i]
+  #     barrel2 = houston_group$barrel2[i]
+  #     bullet1 = houston_group$bullet1[i]
+  #     bullet2 = houston_group$bullet2[i]
+  #     ccf_score  = houston_group$mean_ccf[j]
+  #     rf2_score  = houston_group$mean_rf2[j]
+  #     rf3_score = houston_group$mean_rf3[j]
+  #     phase_ccf = houston_group$mean_ccf[j] - houston_group$mean_ccf[i]
+  #     phase_rf2 = houston_group$mean_rf2[j] - houston_group$mean_rf2[i]
+  #     phase_rf3 = houston_group$mean_rf3[j] - houston_group$mean_rf3[i]
+  #     houstonPairs <- rbind(houstonPairs, data.frame(barrel1, barrel2, bullet1, bullet2, phase_ccf, phase_rf2, phase_rf3, ccf_score, rf2_score, rf3_score))
+  #   }
+  # }
+  # 
+  
+  houstonP2 <- houstonPairs
+  houstonP2$bullet1 <- houstonPairs$bullet2
+  houstonP2$bullet2 <- houstonPairs$bullet1
+  houstonP2$land1 <- houstonPairs$land2
+  houstonP2$land2 <- houstonPairs$land1
+  houstonP2$barrel1 <- houstonPairs$barrel2
+  houstonP2$barrel2 <- houstonPairs$barrel1
+  houstonP2 <- rbind(houstonPairs, houstonP2)
+  
+  houstonP2 <- houstonP2%>%filter(!(barrel1 == "BD" & barrel2 == "BC" &
+                         bullet1 %in% c(35,36,37,38,39,40) & bullet2 %in% c(35,36,37,38,39,40)))
+  houstonP2 <- houstonP2%>%filter(!(barrel1 == "BC" & barrel2 == "BD" &
+                                      bullet1 %in% c(35,36,37,38,39,40) & bullet2 %in% c(35,36,37,38,39,40)))
+  
+  
+   matrix <- houstonP2 %>%
+  ggplot(aes(x = bullet1, y = bullet2, fill = ccf_score)) + 
+  geom_tile() +
+  scale_fill_gradient2(low = "grey80", high = "darkorange", 
+                       midpoint = 0.5, limit = c(0, 1)) +
+  scale_colour_manual(values = c("grey80", "darkorange")) +
+  scale_x_discrete(breaks = as.character(c(11, 33, 35, 37, 40, 50)), name = "Bullet 1") +
+  scale_y_discrete(breaks = as.character(c(11, 33, 35, 37, 40, 50)), name = "Bullet 2") +
+  labs(x = "Bullet 1", y = "Bullet 2", fill = "Max Phase \nCorrelation Score") + 
+  theme(
+        axis.title.x = element_text(size = 10), 
+        axis.title.y = element_text(size = 10),
+        legend.title.align = 0.5,
+        legend.title = element_text(size = 8))
+  matrixCD <- matrix
+  
+```
+<!-- -->
+<!-- -->
+```{r}
+#| label: fig-matrixD
+#| fig-cap: "Overview of the adjustments made throughout the data cleaning process and their impact on the matrices"
+#| fig-height: 4
+#| fig-width: 5
+#| layout: "[24, -3, 24, -3, 24, -3, 24]"
+#| fig-env: "figure*"
+#| fig-subcap:
+#| - "40x40 comparison matrix for firearm D"
+#| - "Replacing bullets 33-36 of barrel D with scans of groove-engraved areas"
+#| - "Replacing bullets 33-36 of barrel D with LEAs rescans"
+#| - "Replacing bullets 35-50 of barrel C with original scans from barrel D"
+matrixD
+#ggsave(matrixD, filename = "../figure/matrixD.png")
+
+matrixDGrooves
+#ggsave(matrixD, filename = "../figure/matrixD2-Grooves.png")
+
+
+matrixDreplacement
+#ggsave(matrixD, filename = "../figure/matrixD2.png")
+
+
+matrixCD
+#ggsave(matrixD, filename = "../figure/matrixC.png")
+
+```
+<!-- -->
+<!--
+![40x40 comparison matrix for firearm D](..\figure\matrixD.png){#fig-matrixD-1}
+
+![40x40 matrix with scans of groove-engraved areas](..\figure\matrixD.png){#fig-matrixD-2}
+
+![Replacing bullets 33-36 of barrel C with barrel D](..\figure\matrixD.png){#fig-matrixD-3}
+
+![40x40 matrix for firearm C with replaced comparisons from firearm D](..\figure\matrixD.png){#fig-matrixD-4}
+
+:::
+--->
+\vspace{-10pt}\hfill\newline\noindent
+**Comparing Groove-Engraved Areas**\hfill\newline
+<!-- -->
+One potential reason for this suboptimal performance may stem from the groove-engraved areas (GEAs) being scanned rather than the land-engraved areas. Note that these areas are usually not used for examinations because grooves preserve marks from the tool they are made.  When firearms are manufactured, a broaching tool is used to create the grooves for the rifling. This incorporates marks specific to the tool on the surface of the barrel. Because the same broaching tool is used for multiple barrels, marks on grooves are not specific to the firearm, limiting the ability to conclusively link striations on groove-engraved areas of a bullet to a particular firearm.
+
+::: {#fig-bulletScans layout-ncol="2" fig.pos="H"}
+![Original land from bullet 35](../figure/HFSCP-BD-B35-L2.png){#fig-LEA35}
+
+![Scan of a groove from bullet 35](../figure/HFSCP-BD2-B35-G2.png){#fig-GEA}
+
+Comparing the land-engraved area and the groove-engraved area of bullet 35 from barrel D.
+:::
+
+When analyzing the scans of groove-engraved areas (GEAs), it became apparent that the usage of grooves was not the root of the problem. @fig-LEA35 below shows the original scan from Bullet 35, while @fig-GEA shows a rescanned groove for that same firearm. Notably, the scan from GEAs has fewer topographical protrusions than the original image, indicating a smoother surface profile.
+
+We then conducted an analysis where bullets 33-36 in the original data were replaced with comparisons using the grooves. For this test, bullets 33 and 34 act as a control - they represent scans that were already producing expected results in the dataset. Bullets 35 and 36 represent two bullets performing poorly in barrel D. The 40x40 matrix was recreated using our interactive framework, shown in @fig-matrixD-2.
+
+This visualization reinforces the conclusion that the discrepancy in the max phase correlation score was not due to grooves being scanned instead of lands. Not only are bullets 35 and 36 performing worse than before, but the scores on our control bullets - 33 and 34, also dropped significantly. Thus, we can conclude that the inaccuracy of the original data is not because groove areas were analyzed instead of lands.
+<!-- -->
+<!--### Rescanning Land-Engraved Areas-->
+\hfill\newline\noindent
+**Rescanning Land-Engraved Areas**\hfill\newline
+<!-- -->
+Our following action was to rescan and process the 3D topographical imaging on the bullets in question. The same control and test groups were used as the groove comparisons. Bullets 33 - 36 were rescanned, with 33 and 34 as the control. Replacing those comparisons in the interactive framework showed a drastic difference in results. In the 40x40 matrix, the max phase correlation scores of the rescanned bullets aligned closely with those the other bullets fired from firearm D, as shown in @fig-matrixD-3. Furthermore, no significant change was found in the scores of the control group. When utilizing other parts of \thetool, such as the 6x6 matrix and looking at the raw scans, these comparative results were reinforced. The alignment of signals for the rescans showed significant improvement compared to the previous alignment among barrel D.
+
+Thus, the observed discrepancy in performance stems not from the algorithmic process itself but from inconsistencies in the raw scans utilized in the initial data processing. This could be due to various factors, including mislabeling or inadequate scanning. However, if this is a case of mislabeling scans, it raises questions regarding the provenance of the original scans.
+<!-- -->
+<!-- -->
+\hfill\newline\noindent
+**Closing the Loop**\hfill\newline
+<!-- -->
+To answer whether the data was mislabeled, we compared the original scans of bullet D to data obtained from all of the 12 other firearms in the Houston dataset. We selected one bullet from each firearm that performed exceptionally compared to the other bullets from that firearm (12 bullets in total). Those bullets were then compared to both each other and bullet 39 from firearm D, one of the originally poor-performing bullets.
+
+We found that 11 of the 12 bullets showed poor performance when compared to the selected bullet from firearm D. The exception was the bullet selected from firearm C. When comparing that bullet to bullet 39 of barrel D, the algorithmic results showed that the two bullets were likely fired from the same weapon. @fig-CD-Comparison shows the 6x6 matrix from our framework tool when comparing the selected bullet from firearm C to bullet 39 of barrel D. The alignment between these two bullets is extremely strong, even stronger than many other bullet comparisons where both bullets originated from firearm C.
+
+```{r fig-CD-Comparison, echo = FALSE, fig.cap = "Replacing 6x6 matrix from bullet C with bullet D", warning = FALSE, message = FALSE, fig.height = 1.85, fig.width = 3}
+
+
+
+twobullets <- main %>% 
+  filter(source == "houston-comparisons-goodBullets.csv") %>%
+  filter(barrel1 == "D", barrel2 == "C")
+
+#View(twobullets)
+
+twobullets$samesource <- bullet_to_land_predict(twobullets$land1, twobullets$land2, twobullets$rf2, difference = 0, alpha = 0.5)
+#View(twobullets)
+
+
+twobullets %>%
+  ggplot(aes( x = land1, y = land2, fill = ccf)) +
+  geom_tile() +
+  scale_colour_manual(values = c("grey80", "darkorange")) +
+  geom_tile(size= 1, data = twobullets%>% filter(samesource)) +
+  scale_fill_gradient2(low="darkgrey", high = "darkorange", mid="white", midpoint=0.5, limit = c(0,1))+
+  labs(x = "Bullet 1", y = "Bullet 2", fill = "Maximized Cross \nCorrelation") + 
+  theme(
+        axis.title.x = element_text(size = 8), 
+        axis.title.y = element_text(size = 8),
+        axis.text.x = element_text(size = 6),  
+        axis.text.y = element_text(size = 6),   
+        legend.text = element_text(size = 6),
+        legend.title = element_text(size = 6, hjust=0.5))
+```
+
+It is also important to note that the selected bullets did not perform well when compared with each other (i.e., results from the chosen bullet from firearm A did not match the bullet from firearm B). This implies the similarity between the selected bullet from firearm C and the poor-performing bullet from firearm D cannot be attributed to well-performing bullets being accurate among comparisons with other weapons. Thus, we have strong evidence that the bullets were mislabeled, with the poorly performing bullets originating from barrel C.
+
+This notion is strengthened by our visualization tool. When the comparisons for bullets 35-40 are substituted with those initially labeled as bullets 35-40 fired by barrel D, there is no significant deviation in performance according to the 40x40 matrix shown in @fig-matrixD-4. While there may appear to be a dip in performance around this area, the differentiation happens in bullets 34-37, which is not the complete scope of the substituted bullets. Overall, these scans perform very well compared to other bullets shot by firearm C. Thus, we can conclude that bullets 35-40 were mislabeled and shot by firearm C, not D.
+
+<!--
+### Comparison to Previous Scans
+
+To further substantiate this claim, we performed a comparative analysis between the original scans to the new rescans for barrel D. If our claims are valid, bullets 33 and 34 should align because they originate from the same source. Conversely, bullets 35 and 36 should not align because the original scans were sourced from firearm C, whereas the new scans come from firearm D. @fig-matrixDD2 illustrates the comparison. We can see the expected outcome in our data, substantiating our claim that the original scans were mislabeled and originated from barrel C.
+
+```{r fig-matrixDD2, fig.cap = "Replacing barrel C scans with poor-performing scans labeled barrel D", fig.height=1.75, fig.width = 3}
+houstonDD2 <- read.csv("../data/houston-comparisons-DD2.csv")
+
+  
+  houstonDD2 <- houstonDD2 %>% 
+    mutate(
+      id1 = land1,
+      id2 = land2
+    ) %>%
+    separate_wider_delim(
+      land1, delim="-", names = c("study1", "barrel1", "bullet1", "land1")
+    ) %>%
+    separate_wider_delim(
+      land2, delim="-", names = c("study2", "barrel2", "bullet2", "land2")
+    )
+  
+  houstonDD2 <- houstonDD2%>%select(-id1, -id2)
+  
+  #Making the barrel information more accessible
+  houstonDD2$bullet1 <- gsub("B", "", houstonDD2$bullet1)
+  houstonDD2$bullet2 <- gsub("B", "", houstonDD2$bullet2)
+
+
+  houstonDD2$rf2 <- predict(csafe2, newdata=houstonDD2, type="prob")[,2]
+  houstonDD2$rf3 <- predict(csafe3, newdata=houstonDD2, type="prob")[,2]
+  
+  #Filtering out lands or grooves for the affected areas so we don't track both changes CHANGE EACH TIME
+  houstonDD2 <- houstonDD2 %>% filter(!(land1 %in% c("G1", "G2", "G3", "G4", "G5", "G6") & bullet1 %in% c(33:36)))
+  houstonDD2 <- houstonDD2 %>% filter(!(land2 %in% c("G1", "G2", "G3", "G4", "G5", "G6") & bullet2 %in% c(33:36)))
+  
+  
+  #
+  houston_group <- houstonDD2%>%group_by(barrel1, bullet1, barrel2, bullet2, samesource)%>% summarise(mean_ccf = mean(ccf), mean_rf2 = mean(rf2), mean_rf3 = mean(rf3))
+  houstonPairs <- data.frame()
+  n = dim(houston_group)[1]
+  k = 1
+  for (i in 1:(n-1)){
+    j = i + 1
+    if (houston_group$barrel1[i] == houston_group$barrel1[j] && houston_group$barrel2[i] == houston_group$barrel2[j] && 
+        houston_group$bullet2[i] == houston_group$bullet2[j] && houston_group$bullet1[i] == houston_group$bullet1[j] && 
+        houston_group$samesource[i] != houston_group$samesource[j]){
+      barrel1 <- houston_group$barrel1[i]
+      barrel2 = houston_group$barrel2[i]
+      bullet1 = houston_group$bullet1[i]
+      bullet2 = houston_group$bullet2[i]
+      ccf_score  = houston_group$mean_ccf[j]
+      rf2_score  = houston_group$mean_rf2[j]
+      rf3_score = houston_group$mean_rf3[j]
+      phase_ccf = houston_group$mean_ccf[j] - houston_group$mean_ccf[i]
+      phase_rf2 = houston_group$mean_rf2[j] - houston_group$mean_rf2[i]
+      phase_rf3 = houston_group$mean_rf3[j] - houston_group$mean_rf3[i]
+      houstonPairs <- rbind(houstonPairs, data.frame(barrel1, barrel2, bullet1, bullet2, phase_ccf, phase_rf2, phase_rf3, ccf_score, rf2_score, rf3_score))
+    }
+  }
+  
+  
+  houstonP2 <- houstonPairs
+  houstonP2$bullet1 <- houstonPairs$bullet2
+  houstonP2$bullet2 <- houstonPairs$bullet1
+  houstonP2$land1 <- houstonPairs$land2
+  houstonP2$land2 <- houstonPairs$land1
+  houstonP2$barrel1 <- houstonPairs$barrel2
+  houstonP2$barrel2 <- houstonPairs$barrel1
+  houstonP2 <- rbind(houstonPairs, houstonP2)
+  
+  
+  
+  matrix <- houstonP2 %>%
+  ggplot(aes(x = bullet1, y = bullet2, fill = ccf_score)) + 
+  geom_tile() +
+  scale_fill_gradient2(low = "grey80", high = "darkorange", 
+                       midpoint = 0.5, limit = c(0, 1)) +
+  scale_colour_manual(values = c("grey80", "darkorange")) +
+  labs(x = "Bullet 1", y = "Bullet 2", fill = "Max Phase \nCorrelation Score") + 
+  theme(
+        axis.title.x = element_text(size = 8), 
+        axis.title.y = element_text(size = 8),
+        legend.title.align = 0.5,
+        axis.text.x = element_text(size = 6),  
+        axis.text.y = element_text(size = 6),   
+        legend.text = element_text(size = 6),
+        legend.title = element_text(size = 6))
+
+  matrix
+  
+```
+-->
+## Bullet Distance Analysis
+
+A key focus of this tool was evaluating whether model performance changes as more bullets are fired from a weapon. Using variograms, we provided a visual representation of this performance. @fig-variograms illustrates variograms for all firearms in the Houston dataset.
+
+![Variograms across all firearms](../figure/ccfVariograms.png){#fig-variograms}
+
+We hypothesized that model performance would decline as the distance between shots fired increases. This does appear to be the case in some firearms, specifically firearms 3, B, C, E, F, and H. However, other barrels, such as 1, 2, A, and G show little to no deviation in performance as distance increases.
+
+Furthermore, some firearms show odd behaviors. Firearm D shows an upward trend, although this may be attributed to the aforementioned mislabeling issue. Firearm I exhibits an unusual pattern, where the scores initially increases with distance, followed by a downward trend at greater distances. Finally, firearm J shows a high frequency of comparisons with markedly low performance relative to the other bullets in the analysis. Using the visualization framework, we recognized that this behavior can be attributed to markedly low scores using comparisons from two bullets - bullets 46 and 50. Analysis similar to the previous case in barrel D is needed to ascertain the cause of such low scores. Overall, given the varied results of this data, we cannot make any definitive claims regarding model performance across bullet distance.
+
+# Limitations
+
+This study faces a number of limitations, chiefly regarding file storage. Because of the large number of comparisons, a considerable amount of files were rendered for each stage in the FBCV's process. Each firearm contains 1600 bullet-to-bullet comparisons. Then, for each bullet-to-bullet comparison, there are 36 sub-comparisons made at the land level, corresponding to the six lands of each bullet. Therefore, we must process $1600 \times 36 = 57,600$ png images at the land level.
+
+At the lowest level of the FBCV, an image is processed for each pf the lands being compared, the cutoffs of the LEA for both lands, and the aligned signals. Therefore, 288,000 background PNG files are processed before they are aggregated into HTML format. To mitigate the storage burden, we employed a strategy to avoid creating new background files for each HTML rendering. For the 40x40 matrix, the 6x6 land-to-land matrix, and the bullet comparison informational HTML, we used a single background file for each type of HTML. This background file was reused across different comparisons, enabling more efficient rendering of the FBCV without duplicating files for each individual bullet comparison.
+
+Despite these adjustments, the substantial number of files presents a significant storage challenge, and Github was unable to accommodate more than the number of files associated with one firearm. Consequently, the figures presented in this analysis primarily focus on firearm A. Furthermore, the need to render such a large number of files complicates the process of making rapid updates to the scans, as any modification typically requires re-rendering a large number of figures. Still, as demonstrated in previous examples, the framework does allow for updates as changes are introduced.
+
+# Conclusion
+
+This paper presented an interactive framework for analyzing algorithmic comparisons of whether two bullets were fired from the same firearm. The framework includes various visualizations that allow the user to assess algorithmic performance at a broader scope while also diagnosing issues at every level of the comparative analysis process. The FBCV was used to analyze algorithmic performance on the Houston dataset. It successfully identified a problematic error in the comparison process, and investigative steps were taken to discern the cause of the error, which is attributed to mislabeling. In the future, this visualization framework can provide summary overviews of algorithmic performance and diagnose problems in the data processing of forensic bullet analysis. By offering an interface that is intuitive and accessible, it presents an option that can support forensic examiners and lead to more accurate forensic analysis.

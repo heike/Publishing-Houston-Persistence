@@ -1,0 +1,243 @@
+---
+title: Interactive Visualization Framework for Forensic Bullet Comparisons
+author:
+  - name: Nathan Rethwisch
+    email: nreth@iastate.edu
+    corresponding: false
+    affiliations: 
+        - id: csafe
+          name: Center for Statistics and Applications in Forensic Evidence (CSAFE)
+          department: Iowa State University
+          city: Ames
+          state: Iowa
+          postal-code: 50011
+          country: United States
+    
+  - name: Heike Hofmann
+    email: hofmann@iastate.edu
+    corresponding: false
+    affiliations: 
+         - id: csafe
+           name: Center for Statistics and Applications in Forensic Evidence (CSAFE)
+           department: Iowa State University
+           city: Ames
+           state: Iowa
+           postal-code: 50011
+           country: United States
+
+abstract: |
+  
+keywords: 
+  - Land engraved area
+  - Forensic Pattern Analysis
+  - Topographic Microscopy
+  - 3d Imaging
+  - Statistics
+  - Machine learning
+  - Interactive Forensic Modeling
+  
+date: last-modified
+format:
+  elsevier-pdf:
+    keep-tex: true
+    fig-pos: "H"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{=tex}
+\makeatletter
+\def\ps@pprintTitle{%
+  \let\@oddhead\@empty
+  \let\@evenhead\@empty
+  \def\@oddfoot{\reset@font\hfil\thepage\hfil}
+  \let\@evenfoot\@oddfoot
+}
+\makeatother
+```
+# Introduction
+
+Impressions left on fired bullets, known as Land Engraved Areas (LEAs), are crucial in forensic analyses to establish whether two discharged bullets originated from the same firearm barrel. Current practices rely on forensic examiners to manually assess similarity based on visual comparisons. This analysis can be aided through algorithmic comparisons, which rely on 3D topographic imaging to evaluate matching bullets. This presented work adds to that algorithmic framework by creating a visualization diagnostic tool to assess how accurate the predictions are. The framework is used to analyze a real-world case of mislabeled bullet scans.
+
+## Houston Persistence Data
+
+The data used for this study comes from a set of 40 fired bullets in a Houston lab. 13 different firearms were used for the study, each being the same make and model. The first ten (firearms A-J) were produced consecutively, while the other three (firearms 1-3) were selectived randomly. For each firearm, 40 bullets were fired and collected. For each of the 40 bullets, there were six LEAs captured via topographic imaging. These LEAs are what are used for the analysis.
+
+Therefore, the structure of the data is as follows:
+
+-   13 firearms
+    -   For each firearm, 40 bullets
+        -   For each bullet, 6 images of Land Engraved Areas
+
+# Algorithmic Comparisons
+
+The basis for algorithmic comparison is comparing two of these LEA images, shown in figure 1.The base of the bullet is seen at the bottom of the image, with the bullet curving from left to right.
+
+![Two Land Engraved Images Side-by-Size](..\figure\unnamed-chunk-4-1.png)
+
+The steps to comparing these two images are as follows for all non-damaged scans:
+
+1.  A cross-section is identified on the bullet. This cross-section is the lowest possible horizontal line that does not pass through any breakoff in the bullet. 
+2.  Topographical measurement from this crosscut are used to create a signature. The ends of the signature are removed to account for the curve of the bullet. This is shown in figure 2.
+
+![Crosscut Signature Derived From LEA](..\figure\unnamed-chunk-3-1.png)
+
+3.  After generating signatures for multiple lands engraved areas, the two signatures are aligned with each other. This is shown in figure 3.
+
+![Aligned Signatures of Two Bullets]("..\figure\unnamed-chunk-6-1.png")
+
+4.  Aligned signatures are compared using a cross-correlation function. This gives a number that can be used to assess how similar the lands are.
+5. Because there are six lands per bullet, to compare two bullets to each other, all six lands from one bullet are compared to all six from another bullet. This creates for 36 total comparisons. Figure 4 shows these comparisons, with orange indicating a higher correlation and grey indicating low correlation. Bullets that match, such as this one, are expected to have six areas of high correlation for the six matches and 30 areas of low correlation for the 30 non-matches.
+
+![Comparing Correlation Scores Across Two Bullets](..\docs\Land-to-Land Grids\Barrel A\BA-B32-B32.png){height=40%}
+
+Further information about this process is explained in *citation*
+
+# Interactive HTML Visualization Tool
+## Intrafirearm Comparisons
+With a use case with multiple bullets, such as in the Houston Persistence data, it is beneficial to visualize the comparisons across all bullet-to-bullet comparisons for a firearm. This allows users to assess model accuracy, analyze why certain bullets may not be performing well, and look for areas of poor performance. To achieve this, we calculated a ccf score for each bullet-to-bullet comparison. For each bullet-to-bullet comparison, the ccf score is the mean cross correlation score of the six lands that match between the two bullets.
+$$ 
+  ccf\_score = mean(ccf\_matches)
+$$
+*Note: In this case, ccf = cross-correlation function.
+
+This ccf score was calculated across all $$40 * 40 = 1600$$ bullet-to-bullet comparisons, and then plotted in figure 5. 
+
+```{r, echo = FALSE, fig.cap = "Intrabarrel Comparisons between ccf scores"}
+readRDS("../docs/matrix-comparisons/matrixA.rds")
+```
+
+We took this a step further by creating an interactive framework to analyze the entire steps of the process - from image creation to the barrel-to-barrel grid. This file starts with the barrel-to-barrel grid, as shown in figure 5. When the user clicks on a particular square in the grid, it directs to the appropriate comparison grid between the two barrels, as shown in figure 4. Then, the user can click on a particular square within that grid to query information on the lands used in the land-to-land comparison, including the images, selected crosscut, and aligned signatures. This framework is shown in figure 6. 
+
+![Interactive Framework Covering Bullet Comparison Algorithm](..\figure\overview.png)
+
+This framework allows the user to quickly identify problematic areas that may cause prediction performance to suffer. By showing all steps of the algorithm, not only can users that a problem has occurred, but it allows them to pinpoint that specific problem to a particular step in the algorithmic process.
+
+# A Real Use Case - Incorrectly Labelled Scans
+A real world use-case of this framework comes from the Houston-Persistence dataset. After rending the bullet-to-bullet comparisons for firearm D, it became immediately apparent that there was an error in the analysis for bullets 35-40. These bullets performed well with each other, but did not score highly in comparison to the other bullets shot from this firearm, as shown in figure 7. 
+
+```{r, echo = FALSE, fig.cap = "Bullet-to-Bullet Comparisons - Firearm D"}
+readRDS("../matrix-comparisons/matrixD.rds")
+```
+## Rescans
+The first course of action was to redo the 3D topographical imaging performed on the bullets in question. To have a baseline, bullets 33-36 were rescanned. Bullets 33 and 34 represent scans that were already producing expected results, while bullet 35 and 36 represent two bullets that are performing poorly. 
+
+### Grooves
+One reason why the bullets may be performing poorly is due to the groove-engraved areas being scanned in instead of the land-engraved areas. When firearms are produced, a metal rod is used to clean the inside of the produced barrel. This rod smooths rougher areas in the barrel and often creates less evident topographical differences. The problem with using grooves for analysis is that they do not differ between barrels - the pattern is unique to the rod used and thus cannot link a bullet to a specific firearm. When analyzing the images of the grooves manually, it quickly became apparent that this was not the cause of the problem. The left figure below shows the original scan from Bullet 35, while the right figure shows a rescanned groove for that same data. Visually, the rescanned groove has much less topographical protrusions in comparison to the original image.
+
+ ![Original Scan from Bullet 35](..\images\Barrel D\HFSCP-BD-B35-L2.png){width=49%} ![Rescan of a Groove From Bullet 35](..\images\HFSCP-BD2-B33-G2.png){width=49%}
+ 
+
+When replacing bullets 33-36 in the original data with the rescanned grooves, this visual comparison is enforced with the ccf_score data. Figure 8 shows the intrafirearm matrix when replacing bullets 33-36. 
+
+
+```{r, echo = FALSE, fig.cap = "Intrafirearm Matrix With Rescanned Grooves"}
+readRDS("../matrix-comparisons/matrixD2-Grooves.rds")
+```
+
+
+Not only are bullets 35 and 36 performing worse than before, the scores on bullet 33 and 34, the bullets who originally had good performance, has declined significantly. Thus, we can conclude that the innacuracy of the original data is not because groove areas were used instead of lands.
+
+### Lands
+Next, we compared the rescanned lands to the original scans. While it was hard to draw similarities between the visual images, they were not as drastically different as when comparing to the grooves in the previous step. However, when we replaced bullets 33-36 with the rescans, as show in Figure 9, the performance of the affected bullets was on par with the rest of the bullets shot by firearm D. 
+
+```{r, echo = FALSE, fig.cap = "Rescans of Lands Replacing Bullets 33-36 of Barrel D"}
+readRDS("../matrix-comparisons/matrixD2.rds")
+```
+
+Therefore, we can conclude that the rescans are accurate to the true lands from barrel D. This means that the cause of the original inaccuracy is not attributed to the model, but instead is likely cause by mislabelling or inadeuqate scnas.
+
+## Comparing Other Bullets
+The next step was to see if the scans came from another firearm in the dataset and were simply mislabelled. We selected one bullet from each firearm that performed exceptionally when compared to the other bullets from that same firearm (12 bullets in total). Those bullets were then compared to both each other and bullet 39 from firearm. D, one of the poor performing bullets when compared to other in that firearm.
+
+We found that in 11 of the 12 bullets, they performed poor when compared to the bullet from firearm D. The exception to this rule was the bullet selected from firearm C. When comparing that bullet to bullet 39 of barrel D, the algorithm showed that the two bullets were likely fired from the same firearm, as shown in Figure 10.
+
+```{r results='hide', message=FALSE, warning=FALSE, include = FALSE}
+library(randomForest)
+library(dplyr)
+library(tidyverse)
+library(bulletxtrctr)
+library(arsenal)
+```
+
+
+```{r, echo = FALSE, fig.cap = "Comparison of Bullet From Firearm C and Bullet 39 of Firearm D", warning = FALSE, message = FALSE}
+
+#Processing the file
+
+houston <- read.csv("../Rescan-Analysis/houston-comparisons-GoodBullets.csv", stringsAsFactors = FALSE)
+#View(houston)
+
+houston <- houston %>% mutate(
+  abs_lag = abs(lag)
+)
+
+csafe2 <- readRDS("../csafe_rf2.rds") # from DIB-Hamby data/csafe2.rds
+csafe3 <- readRDS("../csafe_rf3.rds") # from DIB-Hamby data/csafe3.rds
+
+houston$rf2 <- predict(csafe2, newdata=houston, type="prob")[,2]
+houston$rf3 <- predict(csafe3, newdata=houston, type="prob")[,2]
+
+
+houston <- houston %>% 
+  mutate(
+    id1 = land1,
+    id2 = land2
+  ) %>%
+  separate_wider_delim(
+    land1, delim="-", names = c("study1", "barrel1", "bullet1", "land1")
+  ) %>%
+  separate_wider_delim(
+    land2, delim="-", names = c("study2", "barrel2", "bullet2", "land2")
+  )
+
+twobullets <- houston %>% 
+  filter(barrel1 == "BD", barrel2 == "BC") 
+
+#View(twobullets)
+
+twobullets$samesource <- bullet_to_land_predict(twobullets$land1, twobullets$land2, twobullets$rf2, difference = 0, alpha = 0.5)
+#View(twobullets)
+
+
+
+twobullets %>% 
+  ggplot(aes( x = land1, y = land2, fill = ccf, color = samesource)) + 
+  geom_tile() +
+  scale_fill_gradient2(low = "grey80", high = "darkorange", 
+                       midpoint = .5) +
+  scale_colour_manual(values = c("grey80", "darkorange")) +
+  geom_tile(size= 1, data = twobullets%>% filter(samesource)) +
+  scale_fill_gradient2(low="darkgrey", high = "darkorange", mid="white", midpoint=.5) 
+
+```
+
+It is also important to note that the selected bullets did not perform well when compared with each other (i.e. - the bullet from Firearm A did not match the bullet from Firearm B). This means that the similarity between the bullet from Firearm C and the poor-performing bullet from firearm D cannot be attributed to well-performing bullets being accurate with other firearms. Thus, we have strong evidence that the bullets were mislabeled and poor-performing bullets actually belong to barrel C. Replace the comparisons in barrel C with barrels 35-40 that were originally labelled barrel D is shown in Figure 11:
+
+```{r, echo = FALSE, fig.cap = "Replacing Barrel C Scans with Poor Performing Scans Labelled Barrel D"}
+readRDS("../matrix-comparisons/matrixCD.rds")
+```
+Although it looks like maybe there is a dip in performance, it is important to note that we are not replacing bullets 34-37, where the model seems to have a somewhat weaker performance. Instead, we are replacing bullets 35-40, which have little effect on overall model performance. This point is emphasized when compared to the original bullet-to-bullet matrix for firearm C, as shown in figure 12.
+
+```{r, echo = FALSE, fig.cap = "Bullet-to-bullet matrix for firearm C"}
+readRDS("../matrix-comparisons/matrixC.rds")
+```
+
+There is somewhat of a difference in bullet 37, but overall these scans perform very well when compared to other bullets shot by firearm C. Thus, we can conclude that bullets 35-40 were mislabelled and were shot by firearm C, not D.
+
+## Comparison to Old Scans
+To further support this claim, we decided to compare the old scans to the new rescans for barrel D. If our theory is true, bullets 33 and 34 should match because the come from the same source. However, bullets 35 and 36 should not match because the old scans come from firearm C and the newscans come from firearm D. Figure 13 shows this comparison.
+
+```{r, echo = FALSE, fig.cap = "Replacing Barrel C Scans with Poor Performing Scans Labelled Barrel D", out.width="50%", out.height = "50%"}
+readRDS("../matrix-comparisons/matrixDD2.rds")
+```
+
+We see the expected outcome. Therefore, we are confident that these scans do not come from the same source, and can be attributed to mislabelling.
+
+# Conclusion
+This paper presented an interactive framework for analyzing algorithmic comparisons of whether two bullets were fired from the same firearm. The framework was successfully used to identify a problematic error in the comparison process, and investigative steps were taken to discern the cause of the error, which is attributed to mislabeling. This framework tool can be used to aid the algorithmic processing of forensic bullet data.

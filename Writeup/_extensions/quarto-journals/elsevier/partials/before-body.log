@@ -1,0 +1,27 @@
+This is XeTeX, Version 3.141592653-2.6-0.999996 (TeX Live 2024) (preloaded format=xelatex 2024.9.4)  4 SEP 2024 13:57
+entering extended mode
+ restricted \write18 enabled.
+ %&-line parsing enabled.
+**C:/CSAFE/Houston-Persistence-Writeup/Writeup/_extensions/quarto-journals/elsevier/partials/before-body.tex
+(c:/CSAFE/Houston-Persistence-Writeup/Writeup/_extensions/quarto-journals/elsevier/partials/before-body.tex
+LaTeX2e <2024-06-01> patch level 2
+L3 programming layer <2024-08-16>
+
+! LaTeX Error: Environment frontmatter undefined.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.2 \begin{frontmatter}
+                        
+Here is how much of TeX's memory you used:
+ 16 strings out of 476173
+ 778 string characters out of 5783393
+ 1918612 words of memory out of 5000000
+ 22687 multiletter control sequences out of 15000+600000
+ 558069 words of font info for 36 fonts, out of 8000000 for 9000
+ 36 hyphenation exceptions out of 8191
+ 11i,0n,13p,158b,16s stack positions out of 10000i,1000n,20000p,200000b,200000s
+
+No pages of output.
