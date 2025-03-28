@@ -170,11 +170,17 @@ pattern analysis, forensic statistics},
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\date{March 27, 2025}
+\date{March 28, 2025}
 \title{\bf Interactive Visualization Framework for Forensic Bullet
 Comparisons}
 \author{
-Nathan Rethwisch\thanks{TODO}\\
+Nathan Rethwisch\thanks{This work was funded (or partially funded) by
+the Center for Statistics and Applications in Forensic Evidence (CSAFE)
+through Cooperative Agreement 70NANB20H019 between NIST and Iowa State
+University, which includes activities carried out at Carnegie Mellon
+University, Duke University, University of California Irvine, University
+of Virginia, West Virginia University, University of Pennsylvania,
+Swarthmore College and University of Nebraska, Lincoln.}\\
 Department of Statistics, Iowa State University\\
 and\\Heike Hofmann\\
 Department of Statistics, University of Nebraska Lincoln\\
@@ -248,17 +254,34 @@ performance.
 Here, we are proposing an interactive interface designed to visualize
 the statistical metrics embedded in the context of the data
 \citep{wickhamVisualizingStatisticalModels2015} in a manner that is
-intuitive and accessible to forensic examiners. The forensic bullet
-comparison visualizer (FBCV) combines a set of interactive
-visualizations, allowing forensic examiners to engage with the complex
-algorithmic data at each stage of the process, thereby bridging the gap
-between statistical analysis and practical forensic application.
+intuitive and accessible to forensic examiners. We introduce the
+forensic bullet comparison visualizer (FBCV). It leverages the power of
+interactive graphics by combining a set of interactive visualizations,
+allowing forensic examiners to engage with the complex algorithmic data
+at each stage of the process, thereby bridging the gap between
+statistical analysis and practical forensic application.
+
+Interactive graphics are a powerful method of analysis techniques that
+allow the user to dynamically explore and manipulate graphical
+representations of data, usually through clicking, dragging, or
+rescaling \citep{eickHighInteractionGraphics1995}. A typical strategy
+for visualizing complex data is to use high-dimensional plots, which can
+incorporate multiple variables and levels of aggregation. However, these
+plots often pose challenges in interpretability, especially among those
+unfamiliar with the data. To improve readability, a cogent method is to
+use linked data views - a type of interactive graphics that allows data
+views to communicate with other views. This linkage system allows for
+the display of highly interpretable graphs while preserving all relevant
+information. Users are able to select key features (1) and hide details
+that are less pertinent at the time (0), allowing for intuitive data
+exploration \citep{willsLinkedDataViews2008}. The FBCV leverages linked
+views to present data at multiple levels of the bullet analysis process.
 
 This paper presents a short review of the algorithmic comparison
-process. We then discuss the choice of visuals in supporting diagnostics
-at each stage of the process. We also showcase the diagnostic
-capabilities of these visuals by presenting a real-world use case where
-we successfully applied the FBCV to identify an error in the
+process. We then discuss the role of interactive visualizations to
+support diagnostics at each stage of the process. We also showcase the
+diagnostic capabilities of these visuals by presenting a real-world use
+case where we successfully applied the FBCV to identify an error in the
 data-cleaning process. Finally, we highlight other ways in which the
 FBCV can be utilized for further investigatory analysis.
 

@@ -10,7 +10,7 @@ date: last-modified
 author:
   - name: Nathan Rethwisch
     acknowledgements: | 
-      TODO
+       This work was funded (or partially funded) by the Center for Statistics and Applications in Forensic Evidence (CSAFE) through Cooperative Agreement 70NANB20H019 between NIST and Iowa State University, which includes activities carried out at Carnegie Mellon University, Duke University, University of California Irvine, University of Virginia, West Virginia University, University of Pennsylvania, Swarthmore College and University of Nebraska, Lincoln.
     affiliations:
       - name: Iowa State University
         department: Department of Statistics
@@ -99,14 +99,13 @@ Current forensic practices rely on examiners to visually inspect bullets under a
 
 Algorithmic comparison methods have demonstrated considerable potential to quantify the similarity between pairwise pieces of evidence. However, current approaches have created a gap between the statistical metrics and the practical understanding of these metrics by practitioners. This gap highlights the need for a more effective method to assist forensic practitioners in assessing and understanding the algorithm's performance. 
 
-<!-- Section on Interactive Graphics -->
+Here, we are proposing an interactive interface designed to visualize the  statistical metrics embedded in the context of the data [@wickhamVisualizingStatisticalModels2015] in a manner that is intuitive and accessible to forensic examiners. We introduce the forensic bullet comparison visualizer (FBCV). It leverages the power of interactive graphics by combining a set of interactive visualizations, allowing forensic examiners to engage with the complex algorithmic data at each stage of the process, thereby bridging the gap between statistical analysis and practical forensic application.
 
+<!-- Interactive graphics section -->
+Interactive graphics are a powerful method of analysis techniques that allow the user to dynamically explore and manipulate graphical representations of data, usually through clicking, dragging, or rescaling [@eickHighInteractionGraphics1995]. A typical strategy for visualizing complex data is to use high-dimensional plots, which can incorporate multiple variables and levels of aggregation. However, these plots often pose challenges in interpretability, especially among those unfamiliar with the data. To improve readability, a cogent method is to use linked data views - a type of interactive graphics that allows data views to communicate with other views. This linkage system allows for the display of highly interpretable graphs while preserving all relevant information. Users are able to select key features (1) and hide details that are less pertinent at the time (0), allowing for intuitive data exploration [@willsLinkedDataViews2008]. The FBCV leverages linked views to present data at multiple levels of the bullet analysis process.
+<!-- Where to put this -->
 
-Here, we are proposing an interactive interface designed to visualize the  statistical metrics embedded in the context of the data [@wickhamVisualizingStatisticalModels2015] in a manner that is intuitive and accessible to forensic examiners. 
-The forensic bullet comparison visualizer (FBCV) combines a set of interactive visualizations, allowing forensic examiners to engage with the complex algorithmic data at each stage of the process, thereby bridging the gap between statistical analysis and practical forensic application.
-
-
-This paper  presents a short review of the algorithmic comparison process. We then discuss the choice of visuals in supporting diagnostics at each stage of the process. We also showcase the  diagnostic capabilities of these visuals by presenting a real-world use case where we successfully applied the FBCV to identify an error in the data-cleaning process. Finally, we highlight other ways in which the FBCV can be utilized for further investigatory analysis. 
+This paper  presents a short review of the algorithmic comparison process. We then discuss the role of interactive visualizations to support diagnostics at each stage of the process. We also showcase the  diagnostic capabilities of these visuals by presenting a real-world use case where we successfully applied the FBCV to identify an error in the data-cleaning process. Finally, we highlight other ways in which the FBCV can be utilized for further investigatory analysis. 
 
 <!-- the data -->
 The data used for illustrating the process is a dataset of scans provided by a collaboration of CSAFE (Center for Statistics and Applications of Forensic Evidence) and the Houston Forensic Science Center (HFSC). The data consists of scans from 40 test fires of each of 13 Ruger LCP barrels. Ten barrels (labeled  'A' through 'J') were consecutively manufactured, while the remaining three (labeled 1-3) come from HFSC's reference library of firearms. Here, we are analyzing 40 sequential shots from each of the barrel. The lettered barrels were only fired ten times each before this study. For ease of notation, we refer to these shots as 11 through 50. LCP barrels are traditionally rifled barrels with 6 lands and 6 groove areas. These barrels mark well, i.e., striation marks are almost visible to the naked eye, making them well-suited for a forensic analysis. Scans of the bullets were obtained  by the High-Resolution Microscopy Lab at Iowa State University using a Sensofar confocal light microscope. For each bullet, 3d topographic images of each of the six land engraved areas (LEA) were acquired at 20x magnification (corresponding to 0.645 micron/pixel), resulting in a total of 3,120 LEA scans (13 barrels x 40 bullets x 6 lands).
