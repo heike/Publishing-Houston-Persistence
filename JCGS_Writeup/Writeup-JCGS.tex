@@ -170,7 +170,7 @@ pattern analysis, forensic statistics},
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\date{March 28, 2025}
+\date{April 2, 2025}
 \title{\bf Interactive Visualization Framework for Forensic Bullet
 Comparisons}
 \author{
@@ -264,18 +264,21 @@ statistical analysis and practical forensic application.
 Interactive graphics are a powerful method of analysis techniques that
 allow the user to dynamically explore and manipulate graphical
 representations of data, usually through clicking, dragging, or
-rescaling \citep{eickHighInteractionGraphics1995}. A typical strategy
-for visualizing complex data is to use high-dimensional plots, which can
-incorporate multiple variables and levels of aggregation. However, these
-plots often pose challenges in interpretability, especially among those
-unfamiliar with the data. To improve readability, a cogent method is to
-use linked data views - a type of interactive graphics that allows data
-views to communicate with other views. This linkage system allows for
-the display of highly interpretable graphs while preserving all relevant
-information. Users are able to select key features (1) and hide details
-that are less pertinent at the time (0), allowing for intuitive data
-exploration \citep{willsLinkedDataViews2008}. The FBCV leverages linked
-views to present data at multiple levels of the bullet analysis process.
+rescaling
+\citep{eickHighInteractionGraphics1995, swayneIntroductionSpecialIssue1999, urbanekIPlotsEXtremeNextgeneration2011}.
+A typical strategy for visualizing complex data is to use
+high-dimensional plots, which can incorporate multiple variables and
+levels of aggregation. However, these plots often pose challenges in
+interpretability, especially among those unfamiliar with the
+data\citep{willsLinkedDataViews2008}. To improve readability, a cogent
+method is to use linked data views - a type of interactive graphics that
+allows data views to communicate with other views. This linkage system
+allows for the display of highly interpretable graphs while preserving
+all relevant information. Users are able to select key features (1) and
+hide details that are less pertinent at the time (0), allowing for
+intuitive data exploration \citep{willsLinkedDataViews2008}. The FBCV
+leverages linked views to present data at multiple levels of the bullet
+analysis process.
 
 This paper presents a short review of the algorithmic comparison
 process. We then discuss the role of interactive visualizations to
@@ -503,22 +506,22 @@ visualization that focuses on a different aspect of the data, which is
 discussed in more detail next. \hfill\newline
 
 \textbf{Tile plots} are our default choice for visualizing all bullet
-comparisons. Figure~\ref{fig-barrel-matrix} shows the 40x40 matrix of
-all pairwise bullet comparisons in for barrel A and same-bullet scores
-on the diagonal. Each row and column corresponds to the bullet involved
-in the comparison, each cell represents the maximum phase correlation
-score for the respective comparison.
+comparisons. The left side of Figure~\ref{fig-tilePlots} shows the 40x40
+matrix of all pairwise bullet comparisons in for barrel A and
+same-bullet scores on the diagonal. Each row and column corresponds to
+the bullet involved in the comparison, each cell represents the maximum
+phase correlation score for the respective comparison.
 
 \begin{figure}
 
 \centering{
 
-\includegraphics{Writeup-JCGS_files/figure-pdf/fig-barrel-matrix-1.pdf}
+\includegraphics[width=1\textwidth,height=\textheight]{Writeup-JCGS_files/figure-pdf/fig-tilePlots-1.pdf}
 
 }
 
-\caption{\label{fig-barrel-matrix}Tile plot of the scores of all
-pairwise comparisons of the 40 sequential bullets fired from barrel A}
+\caption{\label{fig-tilePlots}Tile plots for all pairwise comparisons
+within a bullet}
 
 \end{figure}%
 
@@ -542,39 +545,12 @@ Ordering rows and columns in tile plots has a large impact on the
 visualization. By clicking the \emph{Clustered} subtab, the user can
 view an altered version of the original 40x40 tile plot. The ordering of
 the rows and columns is based on a complete-linkage hierarchical
-clustering of the score matrix. In Figure~\ref{fig-ClusteredMatrix} we
-see two fairly distinct clusters. This version of the tile plot groups
-bullets by their similarity, which helps to identify any significant
-performance discrepancies in the data. The order of the bullets in
-Figure~\ref{fig-ClusteredMatrix} follows the order of the dendrogram in
-Figure~\ref{fig-dendrogram}. Also note that the interactivity of the
+clustering of the score matrix. The right size of
+Figure~\ref{fig-tilePlots} displays this ordering. Here, we see two
+fairly distinct clusters. This version of the tile plot groups bullets
+by their similarity, which helps to identify any significant performance
+discrepancies in the data. Also note that the interactivity of the
 clustered tile plot is the same as for the original plot.
-
-\begin{figure}
-
-\centering{
-
-\includegraphics[width=0.5\textwidth,height=\textheight]{Writeup-JCGS_files/figure-pdf/fig-ClusteredMatrix-1.pdf}
-
-}
-
-\caption{\label{fig-ClusteredMatrix}Re-ordered tile plot for barrel A
-scores.}
-
-\end{figure}%
-
-\begin{figure}
-
-\centering{
-
-\includegraphics[width=0.65\textwidth,height=\textheight]{../figure/dendrogram.png}
-
-}
-
-\caption{\label{fig-dendrogram}The dendrogram for hierarchical
-clustering.}
-
-\end{figure}%
 
 \textbf{Scatterplots} provide an alternative representation of the
 scores: Figure~\ref{fig-scatterplot} shows an example of the default
@@ -646,11 +622,9 @@ analyzing the visualization framework, it became apparent that there was
 an error in the analysis for bullets 35-40. These bullets performed well
 when compared to each other but did not score highly compared to the
 other bullets shot from this firearm, as shown in
-Figure~\ref{fig-matrixD-1}.
+Figure~\ref{fig-matrixD}.
 
 \begin{figure}
-
-\begin{minipage}{0.47\linewidth}
 
 \centering{
 
@@ -658,74 +632,36 @@ Figure~\ref{fig-matrixD-1}.
 
 }
 
-\subcaption{\label{fig-matrixD-1}40x40 comparison matrix for firearm D
-\newline}
-
-\end{minipage}%
-%
-\begin{minipage}{0.05\linewidth}
-~\end{minipage}%
-%
-\begin{minipage}{0.47\linewidth}
-
-\centering{
-
-\includegraphics{Writeup-JCGS_files/figure-pdf/fig-matrixD-2.pdf}
-
-}
-
-\subcaption{\label{fig-matrixD-2}Replacing bullets 33-36 of barrel D
-with scans of groove-engraved areas}
-
-\end{minipage}%
-\newline
-\begin{minipage}{\linewidth}
-~\end{minipage}%
-\newline
-\begin{minipage}{0.47\linewidth}
-
-\centering{
-
-\includegraphics{Writeup-JCGS_files/figure-pdf/fig-matrixD-3.pdf}
-
-}
-
-\subcaption{\label{fig-matrixD-3}Replacing bullets 33-36 of barrel D
-with LEAs rescans}
-
-\end{minipage}%
-%
-\begin{minipage}{0.05\linewidth}
-~\end{minipage}%
-%
-\begin{minipage}{0.47\linewidth}
-
-\centering{
-
-\includegraphics{Writeup-JCGS_files/figure-pdf/fig-matrixD-4.pdf}
-
-}
-
-\subcaption{\label{fig-matrixD-4}Replacing bullets 35-50 of barrel C
-with original scans from barrel D}
-
-\end{minipage}%
-
-\caption{\label{fig-matrixD}Overview of the adjustments made throughout
-the data cleaning process and their impact on the matrices}
+\caption{\label{fig-matrixD}Tile plot of pairwise comaprisons for barrel
+D}
 
 \end{figure}%
 
-\textbf{Comparing Groove-Engraved Areas} One potential reason for this
-suboptimal performance may stem from the groove-engraved areas (GEAs)
-being scanned rather than the land-engraved areas. Note that these areas
-are usually not used for examinations because grooves preserve marks
-from the tool they are made. When firearms are manufactured, a broaching
-tool is used to create the grooves for the rifling. This incorporates
-marks specific to the tool on the surface of the barrel. Because the
-same broaching tool is used for multiple barrels, marks on grooves are
-not specific to the firearm, limiting the ability to conclusively link
-striations on groove-engraved areas of a bullet to a particular firearm.
+\begin{figure}
+
+\centering{
+
+\includegraphics[width=\textwidth,height=0.2\textheight]{Writeup-JCGS_files/figure-pdf/fig-matrixDAdjustments-1.pdf}
+
+}
+
+\caption{\label{fig-matrixDAdjustments}Overview of the adjustments made
+throughout the data cleaning process and their impact on the matrices}
+
+\end{figure}%
+
+\textbf{Comparing Groove-Engraved Areas}
+
+One potential reason for this suboptimal performance may stem from the
+groove-engraved areas (GEAs) being scanned rather than the land-engraved
+areas. Note that these areas are usually not used for examinations
+because grooves preserve marks from the tool they are made. When
+firearms are manufactured, a broaching tool is used to create the
+grooves for the rifling. This incorporates marks specific to the tool on
+the surface of the barrel. Because the same broaching tool is used for
+multiple barrels, marks on grooves are not specific to the firearm,
+limiting the ability to conclusively link striations on groove-engraved
+areas of a bullet to a particular firearm.
 
 \begin{figure}
 
@@ -745,7 +681,7 @@ striations on groove-engraved areas of a bullet to a particular firearm.
 
 \centering{
 
-\includegraphics{../figure/HFSCP-BD2-B35-G2.png}
+\includegraphics{../figure/HFSCP-BD2-B35-G2-Cropped.png}
 
 }
 
@@ -770,8 +706,8 @@ were replaced with comparisons using the grooves. For this test, bullets
 33 and 34 act as a control - they represent scans that were already
 producing expected results in the dataset. Bullets 35 and 36 represent
 two bullets performing poorly in barrel D. The 40x40 matrix was
-recreated using our interactive framework, shown in
-Figure~\ref{fig-matrixD-2}.
+recreated using our interactive framework, shown in the left plot of
+Figure~\ref{fig-matrixDAdjustments}.
 
 This visualization reinforces the conclusion that the discrepancy in the
 max phase correlation score was not due to grooves being scanned instead
@@ -779,6 +715,7 @@ of lands. Not only are bullets 35 and 36 performing worse than before,
 but the scores on our control bullets - 33 and 34, also dropped
 significantly. Thus, we can conclude that the inaccuracy of the original
 data is not because groove areas were analyzed instead of lands.
+
 \hfill\newline\noindent \textbf{Rescanning Land-Engraved
 Areas}\hfill\newline Our following action was to rescan and process the
 3D topographical imaging on the bullets in question. The same control
@@ -787,12 +724,13 @@ were rescanned, with 33 and 34 as the control. Replacing those
 comparisons in the interactive framework showed a drastic difference in
 results. In the 40x40 matrix, the max phase correlation scores of the
 rescanned bullets aligned closely with those the other bullets fired
-from firearm D, as shown in Figure~\ref{fig-matrixD-3}. Furthermore, no
-significant change was found in the scores of the control group. When
-utilizing other parts of the FBCV, such as the 6x6 matrix and looking at
-the raw scans, these comparative results were reinforced. The alignment
-of signals for the rescans showed significant improvement compared to
-the previous alignment among barrel D.
+from firearm D, shown in the middle plot of
+Figure~\ref{fig-matrixDAdjustments}. Furthermore, no significant change
+was found in the scores of the control group. When utilizing other parts
+of the FBCV, such as the 6x6 matrix and looking at the raw scans, these
+comparative results were reinforced. The alignment of signals for the
+rescans showed significant improvement compared to the previous
+alignment among barrel D.
 
 Thus, the observed discrepancy in performance stems not from the
 algorithmic process itself but from inconsistencies in the raw scans
@@ -843,13 +781,13 @@ with the poorly performing bullets originating from barrel C.
 This notion is strengthened by our visualization tool. When the
 comparisons for bullets 35-40 are substituted with those initially
 labeled as bullets 35-40 fired by barrel D, there is no significant
-deviation in performance according to the 40x40 matrix shown in
-Figure~\ref{fig-matrixD-4}. While there may appear to be a dip in
-performance around this area, the differentiation happens in bullets
-34-37, which is not the complete scope of the substituted bullets.
-Overall, these scans perform very well compared to other bullets shot by
-firearm C. Thus, we can conclude that bullets 35-40 were mislabeled and
-shot by firearm C, not D.
+deviation in performance according to the 40x40 matrix shown in the
+right plot of Figure~\ref{fig-matrixDAdjustments}. While there may
+appear to be a dip in performance around this area, the differentiation
+happens in bullets 34-37, which is not the complete scope of the
+substituted bullets. Overall, these scans perform very well compared to
+other bullets shot by firearm C. Thus, we can conclude that bullets
+35-40 were mislabeled and shot by firearm C, not D.
 
 \subsection{Bullet Distance Analysis}\label{bullet-distance-analysis}
 
@@ -857,13 +795,14 @@ A key focus of this tool was evaluating whether model performance
 changes as more bullets are fired from a weapon. Using variograms, we
 provided a visual representation of this performance.
 Figure~\ref{fig-variograms} illustrates variograms for all firearms in
-the Houston dataset.
+the Houston dataset. Note that poor-performing bullets from barrel D
+were removed in this analysis.
 
 \begin{figure}
 
 \centering{
 
-\includegraphics[width=0.75\textwidth,height=\textheight]{../figure/ccfVariograms.png}
+\includegraphics[width=0.75\textwidth,height=\textheight]{../figure/RPlot01.png}
 
 }
 
