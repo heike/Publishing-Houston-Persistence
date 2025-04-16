@@ -2,7 +2,8 @@
 title: "Interactive Visualization Framework for Forensic Bullet Comparisons"
 format:
   jasa-pdf:
-    keep-tex: true  
+    keep-tex: true 
+    fig-pos: "H" 
     journal:
       blinded: false
   jasa-html: default
@@ -10,7 +11,7 @@ date: last-modified
 author:
   - name: Nathan Rethwisch
     acknowledgements: | 
-       This work was funded (or partially funded) by the Center for Statistics and Applications in Forensic Evidence (CSAFE) through Cooperative Agreement 70NANB20H019 between NIST and Iowa State University, which includes activities carried out at Carnegie Mellon University, Duke University, University of California Irvine, University of Virginia, West Virginia University, University of Pennsylvania, Swarthmore College and University of Nebraska, Lincoln.
+       This work was funded (or partially funded) by the Center for Statistics and Applications in Forensic Evidence (CSAFE) through Cooperative Agreement 70NANB20H019 between NIST and Iowa State University, which includes activities carried out at Carnegie Mellon University, Duke University, University of California Irvine, University of Virginia, West Virginia University, University of Pennsylvania, Swarthmore College, and University of Nebraska, Lincoln.
     affiliations:
       - name: Iowa State University
         department: Department of Statistics
@@ -102,7 +103,7 @@ Algorithmic comparison methods have demonstrated considerable potential to quant
 Here, we are proposing an interactive interface designed to visualize the  statistical metrics embedded in the context of the data [@wickhamVisualizingStatisticalModels2015] in a manner that is intuitive and accessible to forensic examiners. We introduce the forensic bullet comparison visualizer (FBCV). It leverages the power of interactive graphics by combining a set of interactive visualizations, allowing forensic examiners to engage with the complex algorithmic data at each stage of the process, thereby bridging the gap between statistical analysis and practical forensic application.
 
 <!-- Interactive graphics section -->
-Interactive graphics are a powerful method of analysis techniques that allow the user to dynamically explore and manipulate graphical representations of data, usually through clicking, dragging, or rescaling [@eickHighInteractionGraphics1995; @swayneIntroductionSpecialIssue1999; @urbanekIPlotsEXtremeNextgeneration2011]. A typical strategy for visualizing complex data is to use high-dimensional plots, which can incorporate multiple variables and levels of aggregation. However, these plots often pose challenges in interpretability, especially among those unfamiliar with the data[@willsLinkedDataViews2008]. To improve readability, a cogent method is to use linked data views - a type of interactive graphics that allows data views to communicate with other views. This linkage system allows for the display of highly interpretable graphs while preserving all relevant information. Users are able to select key features (1) and hide details that are less pertinent at the time (0), allowing for intuitive data exploration [@willsLinkedDataViews2008]. The FBCV leverages linked views to present data at multiple levels of the bullet analysis process.
+Interactive graphics are a powerful method of analysis techniques that allow the user to dynamically explore and manipulate graphical representations of data, usually through clicking, dragging, or rescaling [@eickHighInteractionGraphics1995; @swayneIntroductionSpecialIssue1999; @urbanekIPlotsEXtremeNextgeneration2011]. A typical strategy for visualizing complex data is to use high-dimensional plots, which can incorporate multiple variables and levels of aggregation. However, these plots often pose challenges in interpretability, especially among those unfamiliar with the data [@willsLinkedDataViews2008]. To improve readability, a cogent method is to use linked data views - a type of interactive graphics that allows data views to communicate with other views. This linkage system allows for the display of highly interpretable graphs while preserving all relevant information. Users are able to select key features (1) and hide details that are less pertinent at the time (0), allowing for intuitive data exploration [@willsLinkedDataViews2008]. The FBCV leverages linked views to present data at multiple levels of the bullet analysis process.
 
 This paper  presents a short review of the algorithmic comparison process. We then discuss the role of interactive visualizations to support diagnostics at each stage of the process. We also showcase the  diagnostic capabilities of these visuals by presenting a real-world use case where we successfully applied the FBCV to identify an error in the data-cleaning process. Finally, we highlight other ways in which the FBCV can be utilized for further investigatory analysis. 
 
@@ -202,12 +203,20 @@ houstontemp %>%
 ```
 
 <!-- Numerical bullet-to-bullet score -->
-
+<!--
 Numerically, we can summarise the matrix of pairwise LEA comparisons into a single statistic by calculating averages of selected comparisons. Here, we are using the (background-adjusted) maximum correlation score [@juOpenSourceImplementationCMPS2022] between bullets $B_1$ and $B_2$, given as the difference between the in-phase average and the out-of-phase average: 
-<!-- -->
+ 
 $$
 \mathrm{\overline{CCF}_{diff}}(B_1, B_2) = \underbrace{\left[  \frac{1}{n} \sum_{(i,j) \in \mathcal{P}} c_{ij}\right]}_{\text{in-phase average}} - \underbrace{\left[  \frac{1}{n(n-1)} \sum_{(i,j) \notin \mathcal{P}} c_{ij}\right]}_{\text{out-of-phase average}},
 $$
+-->
+
+A summary statistic is computed using the average of in-phase scores, as these reflect bullet similarity while also being highly indicative of model performance. This is given as
+
+$$
+\mathrm{\overline{CCF}_{max}}(B_1, B_2) = \underbrace{\left[  \frac{1}{n} \sum_{(i,j) \in \mathcal{P}} c_{ij}\right]}_{\text{in-phase average}},
+$$
+
 where $c_{ij}$ is the score between land $i$ on bullet 1 and land $j$ on bullet 2, with $1 \le i, j \le n=6$, where ${\cal P}$ denotes the pairs of lands that capture the best alignment between bullets $B_1$ and $B_2$.
 
 A pairwise comparison of $K$ number of bullets results in a set of scores of size $^KC_2 = \frac{1}{2}K(K-1)$ or $^KC_2 + K$, if we also consider to allow a comparison of a bullet to itself (done to achieve an empirical assessment of the range of scores we can expect to see for a particular type of ammunition and firearm). Different types of visualizations of these set of scores are discussed in the next section.
@@ -394,17 +403,36 @@ These visualizations are integrated into a single HTML webpage, providing a comp
 
 ### The Case of Barrel D
 
-The provided visualizations have shown scores for barrel A, but not all firearms displayed such straight-forward results. One such case was the scores for barrel D. After running the pairwise comparisons and analyzing the visualization framework, it became apparent that there was an error in the analysis for bullets 35-40. These bullets performed well when compared to each other but did not score highly compared to the other bullets shot from this firearm, as shown in @fig-matrixD.
+The provided visualizations have shown scores for barrel A, but not all firearms displayed such straight-forward results. One such case was the scores for barrel D. After running the pairwise comparisons and analyzing the visualization framework, it became apparent that there was an error in the analysis for bullets 35-40. These bullets performed well when compared to each other but did not score highly compared to the other bullets shot from this firearm, as shown in @fig-matrixD. In the next section, we highlight different strategies to deal with this data discrepancy, comparing two control bullets (33-34) and the affected bullets (35-40). The bullets primarily used in this analysis are highlighted in @fig-matrixD.
 
 
 ```{r}
 barrelD <- houstonPairs %>% filter(barrel1 == "D", barrel2=="D")
 barrelD <- make_symmetric(barrelD)
 
+x_levels <- sort(unique(barrelD$bullet1))
+y_levels <- sort(unique(barrelD$bullet2))
+
+barrelD <- barrelD %>%
+  mutate(
+    bullet1 = factor(bullet1, levels = x_levels),
+    bullet2 = factor(bullet2, levels = y_levels)
+  )
+
 matrix <- barrelD %>%
   filter(source == "houston-comparisons.csv.zip") %>%
   ggplot(aes(x = factor(bullet1), y = factor(bullet2), fill = ccf_score)) + 
   geom_tile() +
+  # Add red rectangle from x = 33 to 40
+  geom_rect(
+    xmin = as.numeric(factor(33, levels = x_levels)) - 0.5,
+    xmax = as.numeric(factor(40, levels = x_levels)) + 0.5,
+    ymin = 0.5,
+    ymax = length(y_levels) + 0.5,
+    color = "red",
+    fill = NA,
+    size = 1
+  ) +
   scale_fill_gradient2(low = "grey80", high = "darkorange", 
                        midpoint = 0.5, limit = c(0, 1)) +
   scale_colour_manual(values = c("grey80", "darkorange")) +
@@ -511,21 +539,34 @@ matrixD <- matrix
                                       bullet1 %in% c(33,34,35,36) & bullet2 %in% c(33,34,35,36)))
   
   
-  matrix <- houstonP2 %>%
-  ggplot(aes(x = bullet1, y = bullet2, fill = ccf_score)) + 
+ matrix <- houstonP2 %>%
+  filter(bullet1 %in% 33:40) %>%  
+  ggplot(aes(x = factor(bullet1), y = factor(bullet2), fill = ccf_score)) + 
   geom_tile() +
   scale_fill_gradient2(low = "grey80", high = "darkorange", 
                        midpoint = 0.5, limit = c(0, 1)) +
   scale_colour_manual(values = c("grey80", "darkorange")) +
-  scale_x_discrete(breaks = as.character(c(11, 33, 35, 37, 40, 50)), name = "Bullet 1") +
-  scale_y_discrete(breaks = as.character(c(11, 33, 35, 37, 40, 50)), name = "Bullet 2") +
+  scale_x_discrete(
+    limits = as.character(33:40),
+    breaks = as.character(c(33, 35, 37, 40)), 
+    name = "Bullet 1"
+  ) +
+  scale_y_discrete(
+    breaks = as.character(c(11, 33, 35, 37, 40, 50)), 
+    name = "Bullet 2"
+  ) +
   labs(x = "Bullet 1", y = "Bullet 2", fill = "Max Phase \nCorrelation Score") + 
   theme(
-        axis.title.x = element_text(size = 10), 
-        axis.title.y = element_text(size = 10),
-        legend.title.align = 0.5,
-        legend.title = element_text(size = 8))
-  matrixDGrooves <- matrix
+    axis.title.x = element_text(size = 10), 
+    axis.title.y = element_text(size = 10),
+    legend.title.align = 0.5,
+    legend.title = element_text(size = 8)
+  ) +
+  coord_fixed()  
+
+matrixDGrooves <- matrix
+
+
 ```
 
 ```{r}
@@ -607,6 +648,7 @@ houstonPairs <- houston %>% group_by(barrel1, bullet1, barrel2, bullet2) %>% sum
   
   
   matrix <- houstonP2 %>%
+  filter(bullet1 %in% 33:40) %>%  
   ggplot(aes(x = bullet1, y = bullet2, fill = ccf_score)) + 
   geom_tile() +
   scale_fill_gradient2(low = "grey80", high = "darkorange", 
@@ -619,7 +661,8 @@ houstonPairs <- houston %>% group_by(barrel1, bullet1, barrel2, bullet2) %>% sum
         axis.title.x = element_text(size = 10), 
         axis.title.y = element_text(size = 10),
         legend.title.align = 0.5,
-        legend.title = element_text(size = 8))
+        legend.title = element_text(size = 8))+
+    coord_fixed()
 
   matrixDreplacement <- matrix
   
@@ -704,6 +747,7 @@ houstonPairs <- houston %>% group_by(barrel1, bullet1, barrel2, bullet2) %>% sum
   
   
    matrix <- houstonP2 %>%
+      filter(bullet1 %in% 33:40) %>%
   ggplot(aes(x = bullet1, y = bullet2, fill = ccf_score)) + 
   geom_tile() +
   scale_fill_gradient2(low = "grey80", high = "darkorange", 
@@ -716,7 +760,8 @@ houstonPairs <- houston %>% group_by(barrel1, bullet1, barrel2, bullet2) %>% sum
         axis.title.x = element_text(size = 10), 
         axis.title.y = element_text(size = 10),
         legend.title.align = 0.5,
-        legend.title = element_text(size = 8))
+        legend.title = element_text(size = 8))+
+     coord_fixed()
   matrixCD <- matrix
   
 ```
@@ -758,11 +803,12 @@ matrixCD
 ```{r}
 #| label: fig-matrixDAdjustments
 #| fig-cap: "Overview of the adjustments made throughout the data cleaning process and their impact on the matrices"
-#| fig-height: 4
-#| fig-width: 13
-#| out-height: "20%"
+#| fig-height: 5.5
+#| fig-width: 10.5
+#| out-height: "45%"
 
-matrixDGrooves + matrixDreplacement + matrixCD + plot_layout(guides = 'collect')
+matrixDGrooves + plot_spacer()  + matrixDreplacement + plot_spacer()  + matrixCD + plot_layout(guides = 'collect', ncol = 5, nrow = 1, widths = c(13, -5, 13, -5, 13))
+
 ```
 
 
@@ -780,7 +826,7 @@ Comparing the land-engraved area and the groove-engraved area of bullet 35 from 
 
 When analyzing the scans of groove-engraved areas (GEAs), it became apparent that the usage of grooves was not the root of the problem. @fig-LEA35 below shows the original scan from Bullet 35, while @fig-GEA shows a rescanned groove for that same firearm. Notably, the scan from GEAs has fewer topographical protrusions than the original image, indicating a smoother surface profile.
 
-We then conducted an analysis where bullets 33-36 in the original data were replaced with comparisons using the grooves. For this test, bullets 33 and 34 act as a control - they represent scans that were already producing expected results in the dataset. Bullets 35 and 36 represent two bullets performing poorly in barrel D. The 40x40 matrix was recreated using our interactive framework, shown in the left plot of @fig-matrixDAdjustments.
+We then conducted an analysis where bullets 33-36 in the original data were replaced with comparisons using the grooves. For this test, bullets 33 and 34 act as a control - they represent scans that were already producing expected results in the dataset. Bullets 35 and 36 represent two bullets performing poorly in barrel D. The matrix of affected bullets was recreated using our interactive framework, shown in the left plot of @fig-matrixDAdjustments.
 
 This visualization reinforces the conclusion that the discrepancy in the max phase correlation score was not due to grooves being scanned instead of lands. Not only are bullets 35 and 36 performing worse than before, but the scores on our control bullets - 33 and 34, also dropped significantly. Thus, we can conclude that the inaccuracy of the original data is not because groove areas were analyzed instead of lands.
 
@@ -788,7 +834,7 @@ This visualization reinforces the conclusion that the discrepancy in the max pha
 \hfill\newline\noindent
 **Rescanning Land-Engraved Areas**\hfill\newline
 <!-- -->
-Our following action was to rescan and process the 3D topographical imaging on the bullets in question. The same control and test groups were used as the groove comparisons. Bullets 33 - 36 were rescanned, with 33 and 34 as the control. Replacing those comparisons in the interactive framework showed a drastic difference in results. In the 40x40 matrix, the max phase correlation scores of the rescanned bullets aligned closely with those the other bullets fired from firearm D, shown in the middle plot of @fig-matrixDAdjustments. Furthermore, no significant change was found in the scores of the control group. When utilizing other parts of the FBCV, such as the 6x6 matrix and looking at the raw scans, these comparative results were reinforced. The alignment of signals for the rescans showed significant improvement compared to the previous alignment among barrel D.
+Our following action was to rescan and process the 3D topographical imaging on the bullets in question. The same control and test groups were used as the groove comparisons. Bullets 33 - 36 were rescanned, with 33 and 34 as the control. Replacing those comparisons in the interactive framework showed a drastic difference in results. In the matrix, the max phase correlation scores of the rescanned bullets aligned closely with those the other bullets fired from firearm D, shown in the middle plot of @fig-matrixDAdjustments. Furthermore, no significant change was found in the scores of the control group. When utilizing other parts of the FBCV, such as the 6x6 matrix and looking at the raw scans, these comparative results were reinforced. The alignment of signals for the rescans showed significant improvement compared to the previous alignment among barrel D.
 
 Thus, the observed discrepancy in performance stems not from the algorithmic process itself but from inconsistencies in the raw scans utilized in the initial data processing. This could be due to various factors, including mislabeling or inadequate scanning. However, if this is a case of mislabeling scans, it raises questions regarding the provenance of the original scans.
 <!-- -->
@@ -832,7 +878,7 @@ twobullets %>%
 
 It is also important to note that the selected bullets did not perform well when compared with each other (i.e., results from the chosen bullet from firearm A did not match the bullet from firearm B). This implies the similarity between the selected bullet from firearm C and the poor-performing bullet from firearm D cannot be attributed to well-performing bullets being accurate among comparisons with other weapons. Thus, we have strong evidence that the bullets were mislabeled, with the poorly performing bullets originating from barrel C.
 
-This notion is strengthened by our visualization tool. When the comparisons for bullets 35-40 are substituted with those initially labeled as bullets 35-40 fired by barrel D, there is no significant deviation in performance according to the 40x40 matrix shown in the right plot of @fig-matrixDAdjustments. While there may appear to be a dip in performance around this area, the differentiation happens in bullets 34-37, which is not the complete scope of the substituted bullets. Overall, these scans perform very well compared to other bullets shot by firearm C. Thus, we can conclude that bullets 35-40 were mislabeled and shot by firearm C, not D.
+This notion is strengthened by our visualization tool. When the comparisons for bullets 35-40 are substituted with those initially labeled as bullets 35-40 fired by barrel D, there is no significant deviation in performance according to the matrix shown in the right plot of @fig-matrixDAdjustments. While there may appear to be a dip in performance around this area, the differentiation happens in bullets 34-37, which is not the complete scope of the substituted bullets. Overall, these scans perform very well compared to other bullets shot by firearm C. Thus, we can conclude that bullets 35-40 were mislabeled and shot by firearm C, not D.
 
 ### Bullet Distance Analysis
 
@@ -849,7 +895,7 @@ knitr::include_graphics("../figure/RPlot01.png")
 
 We hypothesized that model performance would decline as the distance between shots fired increases. This does appear to be the case in some firearms, specifically firearms 3, B, C, E, F, and H. However, other barrels, such as 1, 2, A, and G show little to no deviation in performance as distance increases.
 
-Furthermore, some firearms show odd behaviors. Firearm D shows an upward trend, although this may be attributed to the aforementioned mislabeling issue. Firearm I exhibits an unusual pattern, where the scores initially increases with distance, followed by a downward trend at greater distances. Finally, firearm J shows a high frequency of comparisons with markedly low performance relative to the other bullets in the analysis. Using the visualization framework, we recognized that this behavior can be attributed to markedly low scores using comparisons from two bullets - bullets 46 and 50. Analysis similar to the previous case in barrel D is needed to ascertain the cause of such low scores. Overall, given the varied results of this data, we cannot make any definitive claims regarding model performance across bullet distance.
+Furthermore, some firearms show odd behaviors. Firearm D shows an upward trend, although this may be attributed to the aforementioned mislabeling issue. Firearm I exhibits an unusual pattern, where the scores initially increases with distance, followed by a downward trend at greater distances. Finally, firearm J shows a high frequency of comparisons with markedly low performance relative to the other bullets in the analysis. Using the visualization framework, we recognized that this behavior can be attributed to markedly low scores using comparisons from two bullets - bullets 46 and 50. Analysis similar to the previous case in barrel D is needed to ascertain the cause of such low scores. Overall, model performance seems to stay relatively even until around bulllet 30, where it tends to vary across bullets. Given the varied results of this data, we cannot make any definitive claims regarding model performance across bullet distance.
 
 ## Limitations
 
@@ -859,7 +905,7 @@ At the lowest level of the FBCV, an image is processed for each pf the lands bei
 
 Despite these adjustments, the substantial number of files presents a significant storage challenge, and Github was unable to accommodate more than the number of files associated with one firearm. Consequently, the figures presented in this analysis primarily focus on firearm A. Furthermore, the need to render such a large number of files complicates the process of making rapid updates to the scans, as any modification typically requires re-rendering a large number of figures. Still, as demonstrated in previous examples, the framework does allow for updates as changes are introduced.
 
-# Conclusion
+## Conclusion
 
 This paper presented an interactive framework for analyzing algorithmic comparisons of whether two bullets were fired from the same firearm. The framework includes various visualizations that allow the user to assess algorithmic performance at a broader scope while also diagnosing issues at every level of the comparative analysis process. The FBCV was used to analyze algorithmic performance on the Houston dataset. It successfully identified a problematic error in the comparison process, and investigative steps were taken to discern the cause of the error, which is attributed to mislabeling. In the future, this visualization framework can provide summary overviews of algorithmic performance and diagnose problems in the data processing of forensic bullet analysis. By offering an interface that is intuitive and accessible, it presents an option that can support forensic examiners and lead to more accurate forensic analysis.
 

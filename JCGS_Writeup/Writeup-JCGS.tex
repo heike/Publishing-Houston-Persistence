@@ -170,7 +170,7 @@ pattern analysis, forensic statistics},
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\date{April 2, 2025}
+\date{April 16, 2025}
 \title{\bf Interactive Visualization Framework for Forensic Bullet
 Comparisons}
 \author{
@@ -180,7 +180,7 @@ through Cooperative Agreement 70NANB20H019 between NIST and Iowa State
 University, which includes activities carried out at Carnegie Mellon
 University, Duke University, University of California Irvine, University
 of Virginia, West Virginia University, University of Pennsylvania,
-Swarthmore College and University of Nebraska, Lincoln.}\\
+Swarthmore College, and University of Nebraska, Lincoln.}\\
 Department of Statistics, Iowa State University\\
 and\\Heike Hofmann\\
 Department of Statistics, University of Nebraska Lincoln\\
@@ -269,8 +269,8 @@ rescaling
 A typical strategy for visualizing complex data is to use
 high-dimensional plots, which can incorporate multiple variables and
 levels of aggregation. However, these plots often pose challenges in
-interpretability, especially among those unfamiliar with the
-data\citep{willsLinkedDataViews2008}. To improve readability, a cogent
+interpretability, especially among those unfamiliar with the data
+\citep{willsLinkedDataViews2008}. To improve readability, a cogent
 method is to use linked data views - a type of interactive graphics that
 allows data views to communicate with other views. This linkage system
 allows for the display of highly interpretable graphs while preserving
@@ -316,7 +316,7 @@ steps to each of the 3,120 scans {[}steps 1-4{]} and each pair of scans
 {[}step 5{]}. The results from these comparisons were then rendered in
 our visualization framework {[}Section~\ref{sec-visuals}{]}.
 
-\begin{figure*}
+\begin{figure*}[H]
 
 \centering{
 
@@ -332,7 +332,7 @@ bullet curvature from the profile.}
 
 \end{figure*}%
 
-\begin{figure}
+\begin{figure}[H]
 
 \centering{
 
@@ -420,7 +420,7 @@ pairs of lands with high similarities (in-phase), while all other pairs
 (out-of phase) should result in low scores. This is exactly the pattern
 that can be seen in Figure~\ref{fig-land-matrix}.
 
-\begin{figure}
+\begin{figure}[H]
 
 \centering{
 
@@ -433,14 +433,15 @@ LEA signals from two different bullets.}
 
 \end{figure}%
 
-Numerically, we can summarise the matrix of pairwise LEA comparisons
-into a single statistic by calculating averages of selected comparisons.
-Here, we are using the (background-adjusted) maximum correlation score
-\citep{juOpenSourceImplementationCMPS2022} between bullets \(B_1\) and
-\(B_2\), given as the difference between the in-phase average and the
-out-of-phase average: \[
-\mathrm{\overline{CCF}_{diff}}(B_1, B_2) = \underbrace{\left[  \frac{1}{n} \sum_{(i,j) \in \mathcal{P}} c_{ij}\right]}_{\text{in-phase average}} - \underbrace{\left[  \frac{1}{n(n-1)} \sum_{(i,j) \notin \mathcal{P}} c_{ij}\right]}_{\text{out-of-phase average}},
-\] where \(c_{ij}\) is the score between land \(i\) on bullet 1 and land
+A summary statistic is computed using the average of in-phase scores, as
+these reflect bullet similarity while also being highly indicative of
+model performance. This is given as
+
+\[
+\mathrm{\overline{CCF}_{max}}(B_1, B_2) = \underbrace{\left[  \frac{1}{n} \sum_{(i,j) \in \mathcal{P}} c_{ij}\right]}_{\text{in-phase average}},
+\]
+
+where \(c_{ij}\) is the score between land \(i\) on bullet 1 and land
 \(j\) on bullet 2, with \(1 \le i, j \le n=6\), where \({\cal P}\)
 denotes the pairs of lands that capture the best alignment between
 bullets \(B_1\) and \(B_2\).
@@ -454,7 +455,7 @@ visualizations of these set of scores are discussed in the next section.
 
 \section{Visualization Framework}\label{sec-visuals}
 
-\begin{figure}
+\begin{figure}[H]
 
 \centering{
 
@@ -487,7 +488,7 @@ levels of information. An implementation of the FBCV showing all
 comparisons involving bullets from barrel A can be found at
 \url{https://tinyurl.com/y53n3mkm}.
 
-\begin{figure}
+\begin{figure}[H]
 
 \centering{
 
@@ -512,7 +513,7 @@ same-bullet scores on the diagonal. Each row and column corresponds to
 the bullet involved in the comparison, each cell represents the maximum
 phase correlation score for the respective comparison.
 
-\begin{figure}
+\begin{figure}[H]
 
 \centering{
 
@@ -563,7 +564,7 @@ highlighted. This enables the user to identify bullets with poor scores
 across the dataset or those exhibiting similar patterns across all
 comparisons.
 
-\begin{figure}
+\begin{figure}[H]
 
 \centering{
 
@@ -594,7 +595,7 @@ blue line shows a loess fit to capture the main trend. Clicking on any
 point within the variogram leads to the same interactive pipeline as the
 scatterplots and other visualizations.
 
-\begin{figure}
+\begin{figure}[H]
 
 \centering{
 
@@ -622,9 +623,12 @@ analyzing the visualization framework, it became apparent that there was
 an error in the analysis for bullets 35-40. These bullets performed well
 when compared to each other but did not score highly compared to the
 other bullets shot from this firearm, as shown in
-Figure~\ref{fig-matrixD}.
+Figure~\ref{fig-matrixD}. In the next section, we highlight different
+strategies to deal with this data discrepancy, comparing two control
+bullets (33-34) and the affected bullets (35-40). The bullets primarily
+used in this analysis are highlighted in Figure~\ref{fig-matrixD}.
 
-\begin{figure}
+\begin{figure}[H]
 
 \centering{
 
@@ -637,11 +641,11 @@ D}
 
 \end{figure}%
 
-\begin{figure}
+\begin{figure}[H]
 
 \centering{
 
-\includegraphics[width=\textwidth,height=0.2\textheight]{Writeup-JCGS_files/figure-pdf/fig-matrixDAdjustments-1.pdf}
+\includegraphics[width=\textwidth,height=0.45\textheight]{Writeup-JCGS_files/figure-pdf/fig-matrixDAdjustments-1.pdf}
 
 }
 
@@ -663,7 +667,7 @@ multiple barrels, marks on grooves are not specific to the firearm,
 limiting the ability to conclusively link striations on groove-engraved
 areas of a bullet to a particular firearm.
 
-\begin{figure}
+\begin{figure}[H]
 
 \begin{minipage}{0.50\linewidth}
 
@@ -705,9 +709,9 @@ We then conducted an analysis where bullets 33-36 in the original data
 were replaced with comparisons using the grooves. For this test, bullets
 33 and 34 act as a control - they represent scans that were already
 producing expected results in the dataset. Bullets 35 and 36 represent
-two bullets performing poorly in barrel D. The 40x40 matrix was
-recreated using our interactive framework, shown in the left plot of
-Figure~\ref{fig-matrixDAdjustments}.
+two bullets performing poorly in barrel D. The matrix of affected
+bullets was recreated using our interactive framework, shown in the left
+plot of Figure~\ref{fig-matrixDAdjustments}.
 
 This visualization reinforces the conclusion that the discrepancy in the
 max phase correlation score was not due to grooves being scanned instead
@@ -722,7 +726,7 @@ Areas}\hfill\newline Our following action was to rescan and process the
 and test groups were used as the groove comparisons. Bullets 33 - 36
 were rescanned, with 33 and 34 as the control. Replacing those
 comparisons in the interactive framework showed a drastic difference in
-results. In the 40x40 matrix, the max phase correlation scores of the
+results. In the matrix, the max phase correlation scores of the
 rescanned bullets aligned closely with those the other bullets fired
 from firearm D, shown in the middle plot of
 Figure~\ref{fig-matrixDAdjustments}. Furthermore, no significant change
@@ -756,7 +760,7 @@ bullet from firearm C to bullet 39 of barrel D. The alignment between
 these two bullets is extremely strong, even stronger than many other
 bullet comparisons where both bullets originated from firearm C.
 
-\begin{figure}
+\begin{figure}[H]
 
 \centering{
 
@@ -781,13 +785,13 @@ with the poorly performing bullets originating from barrel C.
 This notion is strengthened by our visualization tool. When the
 comparisons for bullets 35-40 are substituted with those initially
 labeled as bullets 35-40 fired by barrel D, there is no significant
-deviation in performance according to the 40x40 matrix shown in the
-right plot of Figure~\ref{fig-matrixDAdjustments}. While there may
-appear to be a dip in performance around this area, the differentiation
-happens in bullets 34-37, which is not the complete scope of the
-substituted bullets. Overall, these scans perform very well compared to
-other bullets shot by firearm C. Thus, we can conclude that bullets
-35-40 were mislabeled and shot by firearm C, not D.
+deviation in performance according to the matrix shown in the right plot
+of Figure~\ref{fig-matrixDAdjustments}. While there may appear to be a
+dip in performance around this area, the differentiation happens in
+bullets 34-37, which is not the complete scope of the substituted
+bullets. Overall, these scans perform very well compared to other
+bullets shot by firearm C. Thus, we can conclude that bullets 35-40 were
+mislabeled and shot by firearm C, not D.
 
 \subsection{Bullet Distance Analysis}\label{bullet-distance-analysis}
 
@@ -798,7 +802,7 @@ Figure~\ref{fig-variograms} illustrates variograms for all firearms in
 the Houston dataset. Note that poor-performing bullets from barrel D
 were removed in this analysis.
 
-\begin{figure}
+\begin{figure}[H]
 
 \centering{
 
@@ -825,9 +829,11 @@ markedly low performance relative to the other bullets in the analysis.
 Using the visualization framework, we recognized that this behavior can
 be attributed to markedly low scores using comparisons from two bullets
 - bullets 46 and 50. Analysis similar to the previous case in barrel D
-is needed to ascertain the cause of such low scores. Overall, given the
-varied results of this data, we cannot make any definitive claims
-regarding model performance across bullet distance.
+is needed to ascertain the cause of such low scores. Overall, model
+performance seems to stay relatively even until around bulllet 30, where
+it tends to vary across bullets. Given the varied results of this data,
+we cannot make any definitive claims regarding model performance across
+bullet distance.
 
 \section{Limitations}\label{limitations}
 
@@ -860,7 +866,7 @@ typically requires re-rendering a large number of figures. Still, as
 demonstrated in previous examples, the framework does allow for updates
 as changes are introduced.
 
-Conclusion
+\section{Conclusion}\label{conclusion}
 
 This paper presented an interactive framework for analyzing algorithmic
 comparisons of whether two bullets were fired from the same firearm. The
@@ -876,12 +882,6 @@ diagnose problems in the data processing of forensic bullet analysis. By
 offering an interface that is intuitive and accessible, it presents an
 option that can support forensic examiners and lead to more accurate
 forensic analysis.
-
-\section{BibTeX}\label{bibtex}
-
-We encourage you to use BibTeX. If you have, please feel free to use the
-package natbib with any bibliography style you're comfortable with. The
-.bst file agsm has been included here for your convenience.
 
 
   \bibliography{bibliography.bib}
