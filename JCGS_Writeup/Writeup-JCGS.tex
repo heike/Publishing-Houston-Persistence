@@ -95,6 +95,20 @@
 \addtolength{\textwidth}{1in}%
 \addtolength{\textheight}{1.7in}%
 \addtolength{\topmargin}{-1in}%
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{colortbl}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+\usepackage{threeparttablex}
+\usepackage[normalem]{ulem}
+\usepackage{makecell}
+\usepackage{xcolor}
 \makeatletter
 \@ifpackageloaded{caption}{}{\usepackage{caption}}
 \AtBeginDocument{%
@@ -170,7 +184,7 @@ pattern analysis, forensic statistics},
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\date{April 16, 2025}
+\date{April 28, 2025}
 \title{\bf Interactive Visualization Framework for Forensic Bullet
 Comparisons}
 \author{
@@ -316,7 +330,7 @@ steps to each of the 3,120 scans {[}steps 1-4{]} and each pair of scans
 {[}step 5{]}. The results from these comparisons were then rendered in
 our visualization framework {[}Section~\ref{sec-visuals}{]}.
 
-\begin{figure*}[H]
+\begin{figure}[H]
 
 \centering{
 
@@ -330,7 +344,7 @@ topographic scan of a land-engraved area, the profile corresponding to
 the horizontal yellow line, and the signal resulting from removing the
 bullet curvature from the profile.}
 
-\end{figure*}%
+\end{figure}%
 
 \begin{figure}[H]
 
@@ -429,7 +443,7 @@ that can be seen in Figure~\ref{fig-land-matrix}.
 }
 
 \caption{\label{fig-land-matrix}Tile plot of all pairwise comparisons of
-LEA signals from two different bullets.}
+LEA signals from two different bullets}
 
 \end{figure}%
 
@@ -645,7 +659,7 @@ D}
 
 \centering{
 
-\includegraphics[width=\textwidth,height=0.45\textheight]{Writeup-JCGS_files/figure-pdf/fig-matrixDAdjustments-1.pdf}
+\includegraphics{Writeup-JCGS_files/figure-pdf/fig-matrixDAdjustments-1.pdf}
 
 }
 
@@ -768,7 +782,7 @@ bullet comparisons where both bullets originated from firearm C.
 
 }
 
-\caption{\label{fig-CD-Comparison}Replacing 6x6 matrix from bullet C
+\caption{\label{fig-CD-Comparison}Replacing 6x6 tile plot from bullet C
 with bullet D}
 
 \end{figure}%
@@ -797,16 +811,22 @@ mislabeled and shot by firearm C, not D.
 
 A key focus of this tool was evaluating whether model performance
 changes as more bullets are fired from a weapon. Using variograms, we
-provided a visual representation of this performance.
-Figure~\ref{fig-variograms} illustrates variograms for all firearms in
-the Houston dataset. Note that poor-performing bullets from barrel D
-were removed in this analysis.
+provided a visual representation of this performance. A variogram is a
+geostatisitical tool used to visualize spatial dependence. In our
+context, spatial dependence refers to the relationship between model
+performance and distance (i.e., number of shots) between selected
+bullets. Figure~\ref{fig-variograms} illustrates variograms for all
+firearms in the Houston dataset. Note that poor-performing bullets from
+barrel D were removed in this analysis, as well as two bullets from
+barrel J that displaying similar performance issues. Future analysis
+will investigate the underlying cause of these discrepancies in bullet
+J.
 
 \begin{figure}[H]
 
 \centering{
 
-\includegraphics[width=0.75\textwidth,height=\textheight]{../figure/RPlot01.png}
+\includegraphics{Writeup-JCGS_files/figure-pdf/fig-variograms-1.pdf}
 
 }
 
@@ -814,28 +834,106 @@ were removed in this analysis.
 
 \end{figure}%
 
+A linear model was fit to each of the individual bullets. The formula
+for the linear model can be defined as:
+
+\[
+\widehat{\text{CCF}_{\max}}(B_1, B_2) = \theta_0 + \theta_1 \times \frac{1}{N(d)} \sum_{i=1}^{N(d)} \text{CCF}_{\max}^i(B_1, B_2)
+\] where \(d = \lVert B_2 - B_1 ||\), \(N(d)\) is the number of
+observations at a given distance, and \(i\) is the \(CCF_{max}\) between
+\(B_2\) and \(B_1\) at a given \(d\). \(\theta_1\) represent the change
+in mean \(CCF_{max}\) score of bullets at a given \(d\).
+
+Figure~\ref{fig-variogramCoefficients} shows the coefficients for each
+bullet's fitted line.
+
+\begin{figure}[H]
+
+\centering{
+
+\begin{tabu} to \linewidth {>{\raggedright}X>{\raggedleft}X>{\raggedleft}X}
+\hline
+Barrel & $\theta_0$ & $\theta_1$\\
+\hline
+1 & 0.70703 & -0.00009\\
+\hline
+2 & 0.67120 & 0.00016\\
+\hline
+3 & 0.69260 & -0.00199\\
+\hline
+A & 0.67303 & -0.00040\\
+\hline
+B & 0.64291 & -0.00053\\
+\hline
+C & 0.65609 & -0.00128\\
+\hline
+D & 0.65540 & 0.00081\\
+\hline
+E & 0.66713 & -0.00242\\
+\hline
+F & 0.65494 & -0.00268\\
+\hline
+G & 0.65495 & -0.00088\\
+\hline
+H & 0.67041 & -0.00173\\
+\hline
+I & 0.66105 & -0.00055\\
+\hline
+J & 0.73287 & 0.00084\\
+\hline
+\end{tabu}
+
+}
+
+\caption{\label{fig-variogramCoefficients}Coefficients for a fitted
+variogram line}
+
+\end{figure}%
+
 We hypothesized that model performance would decline as the distance
 between shots fired increases. This does appear to be the case in some
-firearms, specifically firearms 3, B, C, E, F, and H. However, other
-barrels, such as 1, 2, A, and G show little to no deviation in
-performance as distance increases.
+firearms, specifically firearms 2, D, and J. However, among all bullets,
+\(\theta_1\) is relatively small, no higher than \(|0.00268|\) Combined
+with the visual analysis of the variogram, it is reasonable to conclude
+that bullet distance has minimal effect on model accuracy. This is
+especially reasonable when \(d < 30\), where we have a large number of
+data points.
 
-Furthermore, some firearms show odd behaviors. Firearm D shows an upward
-trend, although this may be attributed to the aforementioned mislabeling
-issue. Firearm I exhibits an unusual pattern, where the scores initially
-increases with distance, followed by a downward trend at greater
-distances. Finally, firearm J shows a high frequency of comparisons with
-markedly low performance relative to the other bullets in the analysis.
-Using the visualization framework, we recognized that this behavior can
-be attributed to markedly low scores using comparisons from two bullets
-- bullets 46 and 50. Analysis similar to the previous case in barrel D
-is needed to ascertain the cause of such low scores. Overall, model
-performance seems to stay relatively even until around bulllet 30, where
-it tends to vary across bullets. Given the varied results of this data,
-we cannot make any definitive claims regarding model performance across
-bullet distance.
+However, we acknowledge that there is significant variability among the
+in-phase scores across the firearms we examined. This variability
+suggests that additional factors beyond bullet distance have a
+substantial effect on model performance and accuracy. Potential factors
+may include, but are not limited to, inconsistencies in bullet scan
+accuracy, slight differences in ammunition characteristics, and
+differences in the way in which a firearm was discharged, may also play
+a key role in observed variability. These factors prompt further
+investigation to determine their role in achieving consistent model
+predictions and reducing variability among bullets.
 
-\section{Limitations}\label{limitations}
+\section{Discussion}\label{discussion}
+
+\subsection{Key Findings}\label{key-findings}
+
+The FBCV was proven effective in identifying an error in the highlighted
+dataset. Through a series of interactive visualizations, we identified
+the cause of the performance issues, which was attributed to labeling
+error. Through a series of rescans, we resolved the error, allowing us
+to move forward with the analysis. This demonstrates the practical use
+of the FBCV in error identification.
+
+The FBCV also includes variograms, which allow for insightful analysis
+on how bullet distance affects model accuracy. Using these visualization
+tools, we examined the impact on 13 different firearms. By fitting a
+line to the mean in-phase score at each distance among variograms, we
+observed that model accuracy does not significantly degrade with
+increasing bullet distance. However, the variability of bullet scores is
+high, indicating other factors have a substantial effect on prediction
+performance outside of how many shots were fired between bullets. The
+plots included in the FBCV offer a promising tool for future analysis on
+additional datasets, which could contribute to expanding the literature
+in this area.
+
+\subsection{Limitations}\label{limitations}
 
 This study faces a number of limitations, chiefly regarding file
 storage. Because of the large number of comparisons, a considerable
