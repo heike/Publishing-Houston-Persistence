@@ -781,10 +781,6 @@ houstonChanges <- readr::read_csv(here::here("data/houston-comparisons-D2.csv"))
   houston$rf2 <- predict(csafe2, newdata=houston, type="prob")[,2]
   houston$rf3 <- predict(csafe3, newdata=houston, type="prob")[,2]
   
-  # #Filtering out grooves for the affected areas so we don't track both changes from the rescans dataset
-  # houston <- houston %>% filter(!(land1 %in% c("G1", "G2", "G3", "G4", "G5", "G6") & bullet1 %in% c(35:40)))
-  # houston <- houston %>% filter(!(land2 %in% c("G1", "G2", "G3", "G4", "G5", "G6") & bullet2 %in% c(35:40)))
-  
   #Getting in-phase vs. out-of-phase scores
   houstonPairsC <- make_phases(houston)
   
@@ -819,9 +815,10 @@ matrixD
 
 ```{r}
 #| label: fig-matrixDAdjustments
-#| fig-cap: "Overview of the adjustments made throughout the data cleaning process and their impact on the matrices"
-#| fig-height: 4
-#| fig-width: 10.5
+#| fig-cap: "Overview of the adjustments made throughout the data cleaning process and their impact on the tile plots"
+#| fig-height: 5
+#| fig-width: 11
+
 
 #Creating a tile plot for all of the rescan analysis
  matrixRedo <- houstonDComparisons %>%
@@ -870,7 +867,7 @@ Comparing the land-engraved area and the groove-engraved area of bullet 35 from 
 
 When analyzing the scans of groove-engraved areas (GEAs), it became apparent that the usage of grooves was not the root of the problem. @fig-LEA35 below shows the original scan from Bullet 35, while @fig-GEA shows a rescanned groove for that same firearm. Notably, the scan from GEAs has fewer topographical protrusions than the original image, indicating a smoother surface profile.
 
-We then conducted an analysis where bullets 33-36 in the original data were replaced with comparisons using the grooves. For this test, bullets 33 and 34 act as a control - they represent scans that were already producing expected results in the dataset. Bullets 35 and 36 represent two bullets performing poorly in barrel D. The matrix of affected bullets was recreated using our interactive framework, shown in the left plot of @fig-matrixDAdjustments.
+We then conducted an analysis where bullets 33-36 in the original data were replaced with comparisons using the grooves. For this test, bullets 33 and 34 act as a control - they represent scans that were already producing expected results in the dataset. Bullets 35 and 36 represent two bullets performing poorly in barrel D. The matrix of affected bullets was recreated using our interactive framework, shown in the top tile plot of @fig-matrixDAdjustments.
 
 This visualization reinforces the conclusion that the discrepancy in the max phase correlation score was not due to grooves being scanned instead of lands. Not only are bullets 35 and 36 performing worse than before, but the scores on our control bullets - 33 and 34, also dropped significantly. Thus, we can conclude that the inaccuracy of the original data is not because groove areas were analyzed instead of lands.
 
@@ -926,7 +923,7 @@ twobullets %>%
 
 It is also important to note that the selected bullets did not perform well when compared with each other (i.e., results from the chosen bullet from firearm A did not match the bullet from firearm B). This implies the similarity between the selected bullet from firearm C and the poor-performing bullet from firearm D cannot be attributed to well-performing bullets being accurate among comparisons with other weapons. Thus, we have strong evidence that the bullets were mislabeled, with the poorly performing bullets originating from barrel C.
 
-This notion is strengthened by our visualization tool. When the comparisons for bullets 35-40 are substituted with those initially labeled as bullets 35-40 fired by barrel D, there is no significant deviation in performance according to the matrix shown in the right plot of @fig-matrixDAdjustments. While there may appear to be a dip in performance around this area, the differentiation happens in bullets 34-37, which is not the complete scope of the substituted bullets. Overall, these scans perform very well compared to other bullets shot by firearm C. Thus, we can conclude that bullets 35-40 were mislabeled and shot by firearm C, not D.
+This notion is strengthened by our visualization tool. When the comparisons for bullets 35-40 are substituted with those initially labeled as bullets 35-40 fired by barrel D, there is no significant deviation in performance according to the matrix shown in the bottom plot of @fig-matrixDAdjustments. While there may appear to be a dip in performance around this area, the differentiation happens in bullets 34-37, which is not the complete scope of the substituted bullets. Overall, these scans perform very well compared to other bullets shot by firearm C. Thus, we can conclude that bullets 35-40 were mislabeled and shot by firearm C, not D.
 
 ### Bullet Distance Analysis
 
@@ -962,13 +959,13 @@ ccf_variograms <- houstonPairsFiltered %>%
   facet_wrap(~barrel1) +
   labs(x = "Bullet Distance", y = "Max Phase Correlation Score") +
 
-  # Adding in mena points
+  # Adding in mean points
   geom_point(data = mean_scores, aes(x = bulletDistance, y = mean_ccf), 
             color = "#FF4500", size = 1.2) +
 
   # Add linear model fit to the means
   geom_smooth(data = mean_scores, aes(x = bulletDistance, y = mean_ccf), 
-              method = "lm", se = FALSE, color = "#00BFFF")
+              method = lm, se = FALSE, color = "#00BFFF")
   
 ccf_variograms
 
@@ -983,17 +980,14 @@ $$
 where $d = \lVert B_2 - B_1 ||$, 
 $N(d)$ is the number of observations at a given distance, and
 $i$ is the $CCF_{max}$ between $B_2$ and $B_1$ at a given $d$.
-$\theta_1$ represent the change in mean $CCF_{max}$ score of bullets at a given $d$. 
+$\theta_0$ gives a baseline score for each individual barrel, while
+$\theta_1$ represent the coefficient associated with the change in mean $CCF_{max}$ score of bullets at a given $d$. 
 
-@fig-variogramCoefficients shows the coefficients for each bullet's fitted line.
 
 
 ```{r}
 #| label: fig-variogramCoefficients
-#| fig-cap: "Coefficients for a fitted variogram line"
-#| fig-align: "center"
-#| fig-height: 2
-#| fig-width: 3
+#| echo: FALSE
 
 #Splitting the data by barrel
 split_data <- split(mean_scores, mean_scores$barrel1)
@@ -1012,15 +1006,16 @@ model_table <- data.frame(
   slope = sapply(model_output, function(x) round(unname(x[2]), 5))
 )
 
-# Outputting the table
-kable(model_table, col.names = c("Barrel", "$\\theta_0$", "$\\theta_1$"), align = "lrrl", row.names = FALSE, format = "latex", escape  = FALSE) %>%
-  kable_styling("striped", full_width = TRUE)
-
 ```
 
-We hypothesized that model performance would decline as the distance between shots fired increases. This does appear to be the case in some firearms, specifically firearms 2, D, and J. However, among all bullets, $\theta_1$ is relatively small, no higher than $|0.00268|$ Combined with the visual analysis of the variogram, it is reasonable to conclude that bullet distance has minimal effect on model accuracy. This is especially reasonable when $d < 30$, where we have a large number of data points.
+It is apparent that there is differences in baseline model performance between different firearms. $\theta_0$ ranges from `r min(model_table$intercept)` for barrel B to `r format(max(model_table$intercept), scientific = FALSE)` for barrel J, with a mean of `r sprintf("%.5f", mean(model_table$intercept))`.
 
-However, we acknowledge that there is significant variability among the in-phase scores across the firearms we examined. This variability suggests that additional factors beyond bullet distance have a substantial effect on model performance and accuracy. Potential factors may include, but are not limited to, inconsistencies in bullet scan accuracy, slight differences in ammunition characteristics, and differences in the way in which a firearm was discharged, may also play a key role in observed variability. These factors prompt further investigation to determine their role in achieving consistent model predictions and reducing variability among bullets.
+We hypothesized that model performance would decline as the distance between shots fired increases, leading $\theta_1$ to be negative. This is true in most firearms, but $\theta_1$ is positive for firearms 2, D, and J. Overall, however, $\theta_1$ is relatively small among all barrels, falling between `r min(model_table$slope)` and `r sprintf("%.5f", max(model_table$slope))`
+, with a mean of `r sprintf("%.5f", mean(model_table$slope))`. Combined with the visual analysis of the variogram, we conclude that bullet distance has minimal effect on model accuracy relative to other causes of variability. This is evident when $d < 30$, whereas beyond $d > 30$, there is insufficient data to make definitive claims.
+
+Furthermore, we acknowledge that there is significant variability among the in-phase scores across the firearms we examined. This variability suggests that additional factors beyond bullet distance have a substantial effect on model performance and accuracy
+
+While the distance between shots may not be a significant factor in predictive performance, we recognize there is significant amount of variability among in-phase scores between shots. Potential factors may include, but are not limited to, inconsistencies in bullet scan accuracy, slight differences in ammunition characteristics, and differences in the way in which a firearm was discharged, may also play a key role in observed variability. These factors prompt further investigation to determine their role in achieving consistent model predictions and reducing variability among bullets.
 
 ## Discussion
 
@@ -1035,6 +1030,9 @@ This study faces a number of limitations, chiefly regarding file storage. Becaus
 At the lowest level of the FBCV, an image is processed for each pf the lands being compared, the cutoffs of the LEA for both lands, and the aligned signals. Therefore, 288,000 background PNG files are processed before they are aggregated into HTML format. To mitigate the storage burden, we employed a strategy to avoid creating new background files for each HTML rendering. For the 40x40 matrix, the 6x6 land-to-land matrix, and the bullet comparison informational HTML, we used a single background file for each type of HTML. This background file was reused across different comparisons, enabling more efficient rendering of the FBCV without duplicating files for each individual bullet comparison.
 
 Despite these adjustments, the substantial number of files presents a significant storage challenge, and Github was unable to accommodate more than the number of files associated with one firearm. Consequently, the figures presented in this analysis primarily focus on firearm A. Furthermore, the need to render such a large number of files complicates the process of making rapid updates to the scans, as any modification typically requires re-rendering a large number of figures. Still, as demonstrated in previous examples, the framework does allow for updates as changes are introduced.
+
+### Future Work
+Future research in this area should focus on exploring the underlying causes of variability between shots and identifying the factors contributing to this variability. This is crucial to improving model performance and establishing confidence within the forensic community regarding the adoption of such algorithmic models. Additionally, exploring the impact of firearm storage on bullet performance presents a valuable direction for future research.
 
 ## Conclusion
 
