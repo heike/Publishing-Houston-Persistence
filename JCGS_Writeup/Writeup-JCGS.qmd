@@ -45,7 +45,7 @@ execute:
 
 ```{r citations, echo = FALSE, eval=FALSE}
 # run this code chunk to update citations
-keys <- rbbt::bbt_detect_citations(here::here("Writeup/Interactive-Visualization-Framework-for-Forensic-Bullet-Comparisons.qmd"))
+keys <- rbbt::bbt_detect_citations("Writeup-JCGS.qmd")
 #keys <- grep("fig-", keys, invert=TRUE, value = TRUE)
 #keys <- grep("sec-", keys, invert=TRUE, value = TRUE)
 
