@@ -46,8 +46,40 @@ execute:
 ```{r citations, echo = FALSE, eval=FALSE}
 # run this code chunk to update citations
 keys <- rbbt::bbt_detect_citations(here::here("Writeup/Interactive-Visualization-Framework-for-Forensic-Bullet-Comparisons.qmd"))
-keys <- grep("fig-", keys, invert=TRUE, value = TRUE)
-rbbt::bbt_write_bib(keys=keys, 'bibliography.bib', overwrite = TRUE, library_id=rbbt::bbt_library_id('CSAFE'), translator='bibtex')
+#keys <- grep("fig-", keys, invert=TRUE, value = TRUE)
+#keys <- grep("sec-", keys, invert=TRUE, value = TRUE)
+
+get_bibs_from_zotero <- function(keys = keys, library_id, 
+                                 ignore = c("fig-", "sec-"), translator="bibtex") {
+  force(keys)
+  # Is Zotero running?
+  rbbt::assert_bbt()
+  # remove anything we should ignore
+  for (ig in ignore) {
+    keys <- grep(ig, keys, invert=TRUE, value = TRUE)
+  }
+  if (length(keys) == 0) return("")
+  if (length(library_id) == 0) return("")
+  
+  if (is.character(library_id)) {
+    library_id = sapply(library_id, FUN=rbbt::bbt_library_id)
+  }
+  # now load citations from each id
+  bibs <- keys |> sapply(FUN = function(key) {
+    res <- library_id |> sapply(FUN = function(libID) {
+      try(rbbt::bbt_bib(key, translator, 
+        library_id = libID, .action = identity), silent = TRUE)
+      })
+    grep("Error : not found:", res, value = TRUE, invert = TRUE)
+  })
+  not_found <- setdiff(keys, names(bibs))
+  if (length(not_found) > 0) 
+    message(sprintf("Citations not found: %s", paste(not_found, collapse = ", ")))
+  bibs
+}
+
+bibs <- get_bibs_from_zotero(keys, library_id = c("CSAFE", "Graphics-Research"))
+readr::write_file(paste(bibs, collapse="\n"), "bibliography.bib")
 ```
 
 <!-- ```{=tex} -->
