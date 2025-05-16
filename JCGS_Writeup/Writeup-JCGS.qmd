@@ -163,8 +163,41 @@ knitr::include_graphics("../figure/data-process.png")
 #| label: fig-aligned-sigs
 #| fig-cap: "Aligned Signals from lands of two separate bullets."
 #| fig-align: "center"
-#| out-width: '65%'
-knitr::include_graphics("../figure/AlignedSignals.png")
+#| fig-height: 6
+#| fig-wdith: 3
+
+
+  bullets <- readRDS(here::here("sampleBullets.rds"))
+  
+  #Aligning the signatures and extracting features
+  bullets$bulletland <- paste0(bullets$bullet,"-", bullets$land)
+  lands <- bullets$bulletland
+  comparedBullets <- data.frame(
+    expand.grid(land1 = lands[1], land2 = lands[2]), stringsAsFactors = FALSE)
+  
+  
+  # Extract aligned signatures
+  comparedBullets <- comparedBullets %>% mutate(
+    aligned = purrr::map2(.x = land1, .y = land2, .f = function(xx, yy) {
+      land1 <- bullets$sigs[bullets$bulletland == xx][[1]]
+      land2 <- bullets$sigs[bullets$bulletland == yy][[1]]
+      land1$bullet <- "first-land"
+      land2$bullet <- "second-land"
+      
+      sig_align(land1$sig, land2$sig)
+    })
+  )
+  
+  # Plot the alignment
+  d <- comparedBullets$aligned[[1]]
+  
+  d$lands %>%
+    tidyr::gather(sigs, value, sig1, sig2) %>%
+    ggplot(aes(x = x, y = value, colour = sigs)) + 
+    geom_line() +
+    theme_bw() +
+    scale_color_brewer(palette = "Dark2") +
+    labs(color = "Signals")
 
 ```
 
