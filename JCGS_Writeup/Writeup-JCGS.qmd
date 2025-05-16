@@ -167,7 +167,7 @@ knitr::include_graphics("../figure/data-process.png")
 #| fig-wdith: 3
 
 
-  bullets <- readRDS(here::here("sampleBullets.rds"))
+  bullets <- readRDS(here::here("models/sampleBullets.rds"))
   
   #Aligning the signatures and extracting features
   bullets$bulletland <- paste0(bullets$bullet,"-", bullets$land)
