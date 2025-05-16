@@ -664,7 +664,7 @@ D}
 }
 
 \caption{\label{fig-matrixDAdjustments}Overview of the adjustments made
-throughout the data cleaning process and their impact on the matrices}
+throughout the data cleaning process and their impact on the tile plots}
 
 \end{figure}%
 
@@ -724,8 +724,8 @@ were replaced with comparisons using the grooves. For this test, bullets
 33 and 34 act as a control - they represent scans that were already
 producing expected results in the dataset. Bullets 35 and 36 represent
 two bullets performing poorly in barrel D. The matrix of affected
-bullets was recreated using our interactive framework, shown in the left
-plot of Figure~\ref{fig-matrixDAdjustments}.
+bullets was recreated using our interactive framework, shown in the top
+tile plot of Figure~\ref{fig-matrixDAdjustments}.
 
 This visualization reinforces the conclusion that the discrepancy in the
 max phase correlation score was not due to grooves being scanned instead
@@ -799,9 +799,9 @@ with the poorly performing bullets originating from barrel C.
 This notion is strengthened by our visualization tool. When the
 comparisons for bullets 35-40 are substituted with those initially
 labeled as bullets 35-40 fired by barrel D, there is no significant
-deviation in performance according to the matrix shown in the right plot
-of Figure~\ref{fig-matrixDAdjustments}. While there may appear to be a
-dip in performance around this area, the differentiation happens in
+deviation in performance according to the matrix shown in the bottom
+plot of Figure~\ref{fig-matrixDAdjustments}. While there may appear to
+be a dip in performance around this area, the differentiation happens in
 bullets 34-37, which is not the complete scope of the substituted
 bullets. Overall, these scans perform very well compared to other
 bullets shot by firearm C. Thus, we can conclude that bullets 35-40 were
@@ -841,69 +841,34 @@ for the linear model can be defined as:
 \widehat{\text{CCF}_{\max}}(B_1, B_2) = \theta_0 + \theta_1 \times \frac{1}{N(d)} \sum_{i=1}^{N(d)} \text{CCF}_{\max}^i(B_1, B_2)
 \] where \(d = \lVert B_2 - B_1 ||\), \(N(d)\) is the number of
 observations at a given distance, and \(i\) is the \(CCF_{max}\) between
-\(B_2\) and \(B_1\) at a given \(d\). \(\theta_1\) represent the change
-in mean \(CCF_{max}\) score of bullets at a given \(d\).
+\(B_2\) and \(B_1\) at a given \(d\). \(\theta_0\) gives a baseline
+score for each individual barrel, while \(\theta_1\) represent the
+coefficient associated with the change in mean \(CCF_{max}\) score of
+bullets at a given \(d\).
 
-Figure~\ref{fig-variogramCoefficients} shows the coefficients for each
-bullet's fitted line.
-
-\begin{figure}[H]
-
-\centering{
-
-\begin{tabu} to \linewidth {>{\raggedright}X>{\raggedleft}X>{\raggedleft}X}
-\hline
-Barrel & $\theta_0$ & $\theta_1$\\
-\hline
-1 & 0.70703 & -0.00009\\
-\hline
-2 & 0.67120 & 0.00016\\
-\hline
-3 & 0.69260 & -0.00199\\
-\hline
-A & 0.67303 & -0.00040\\
-\hline
-B & 0.64291 & -0.00053\\
-\hline
-C & 0.65609 & -0.00128\\
-\hline
-D & 0.65540 & 0.00081\\
-\hline
-E & 0.66713 & -0.00242\\
-\hline
-F & 0.65494 & -0.00268\\
-\hline
-G & 0.65495 & -0.00088\\
-\hline
-H & 0.67041 & -0.00173\\
-\hline
-I & 0.66105 & -0.00055\\
-\hline
-J & 0.73287 & 0.00084\\
-\hline
-\end{tabu}
-
-}
-
-\caption{\label{fig-variogramCoefficients}Coefficients for a fitted
-variogram line}
-
-\end{figure}%
+It is apparent that there is differences in baseline model performance
+between different firearms. \(\theta_0\) ranges from 0.64291 for barrel
+B to 0.73287 for barrel J, with a mean of 0.67228.
 
 We hypothesized that model performance would decline as the distance
-between shots fired increases. This does appear to be the case in some
-firearms, specifically firearms 2, D, and J. However, among all bullets,
-\(\theta_1\) is relatively small, no higher than \(|0.00268|\) Combined
-with the visual analysis of the variogram, it is reasonable to conclude
-that bullet distance has minimal effect on model accuracy. This is
-especially reasonable when \(d < 30\), where we have a large number of
-data points.
+between shots fired increases, leading \(\theta_1\) to be negative. This
+is true in most firearms, but \(\theta_1\) is positive for firearms 2,
+D, and J. Overall, however, \(\theta_1\) is relatively small among all
+barrels, falling between -0.00268 and 0.00084 , with a mean of -0.00083.
+Combined with the visual analysis of the variogram, we conclude that
+bullet distance has minimal effect on model accuracy relative to other
+causes of variability. This is evident when \(d < 30\), whereas beyond
+\(d > 30\), there is insufficient data to make definitive claims.
 
-However, we acknowledge that there is significant variability among the
-in-phase scores across the firearms we examined. This variability
+Furthermore, we acknowledge that there is significant variability among
+the in-phase scores across the firearms we examined. This variability
 suggests that additional factors beyond bullet distance have a
-substantial effect on model performance and accuracy. Potential factors
-may include, but are not limited to, inconsistencies in bullet scan
+substantial effect on model performance and accuracy
+
+While the distance between shots may not be a significant factor in
+predictive performance, we recognize there is significant amount of
+variability among in-phase scores between shots. Potential factors may
+include, but are not limited to, inconsistencies in bullet scan
 accuracy, slight differences in ammunition characteristics, and
 differences in the way in which a firearm was discharged, may also play
 a key role in observed variability. These factors prompt further
@@ -963,6 +928,16 @@ the process of making rapid updates to the scans, as any modification
 typically requires re-rendering a large number of figures. Still, as
 demonstrated in previous examples, the framework does allow for updates
 as changes are introduced.
+
+\subsection{Future Work}\label{future-work}
+
+Future research in this area should focus on exploring the underlying
+causes of variability between shots and identifying the factors
+contributing to this variability. This is crucial to improving model
+performance and establishing confidence within the forensic community
+regarding the adoption of such algorithmic models. Additionally,
+exploring the impact of firearm storage on bullet performance presents a
+valuable direction for future research.
 
 \section{Conclusion}\label{conclusion}
 
