@@ -256,6 +256,9 @@ houstontemp %>%
   scale_fill_gradient2(low = "grey80", high = "darkorange", 
                        midpoint = 0.5, limit = c(0, 1)) +
   scale_colour_manual(values = c("grey80", "darkorange")) +
+  geom_tile(data = houstontemp |> dplyr::filter(samesource), fill=NA, colour = "darkorange", linewidth=1) +
+  geom_text(aes(label="x"), data = houstontemp |> dplyr::filter(samesource), colour = "black",
+            nudge_y=0.08) +
   labs(x = "Bullet 1", y = "Bullet 2", fill = "Maximized Cross \nCorrelation") + 
   theme(
     axis.title.x = element_text(size = 8), 
@@ -263,7 +266,8 @@ houstontemp %>%
     axis.text.x = element_text(size = 6),  
     axis.text.y = element_text(size = 6),   
     legend.text = element_text(size = 6),
-    legend.title = element_text(size = 6, hjust=0.5))
+    legend.title = element_text(size = 6, hjust=0.5)) 
+  
 
 ```
 
