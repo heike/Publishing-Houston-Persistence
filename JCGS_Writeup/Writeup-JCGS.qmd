@@ -37,6 +37,7 @@ execute:
 
 ---
 
+XX firearm and barrel - need a note specifying that we use this here exchangeably
 
 <!-- ```{=tex} -->
 <!-- \clearpage -->
@@ -932,7 +933,7 @@ matrixRedo
 
 **Comparing Groove-Engraved Areas** 
 
-One potential reason for this suboptimal performance may stem from the groove-engraved areas (GEAs) being scanned rather than the land-engraved areas. Note that these areas are usually not used for examinations because grooves preserve marks from the tool they are made.  When firearms are manufactured, a broaching tool is used to create the grooves for the rifling. This incorporates marks specific to the tool on the surface of the barrel. Because the same broaching tool is used for multiple barrels, marks on grooves are not specific to the firearm, limiting the ability to conclusively link striations on groove-engraved areas of a bullet to a particular firearm.
+One potential reason for the suboptimal performance of bullets 35-40 may stem from the groove-engraved areas (GEAs) being scanned rather than the land-engraved areas. Note that groove engraved areas are usually not used for examinations because grooves are susceptible to sublass characteristics, i.e.\ they preserve marks from the broaching tool used to create the  grooves for the rifling. This incorporates marks specific to the tool on the surface of the barrel. Because the same broaching tool is used for multiple barrels, marks on grooves are not specific to a single firearm, limiting the ability to conclusively link striations on groove-engraved areas of a bullet to a particular firearm.
 
 ::: {#fig-bulletScans layout-ncol="2" fig.pos="H"}
 ![Original land from bullet 35](../figure/HFSCP-BD-B35-L2.png){#fig-LEA35}
@@ -951,7 +952,7 @@ This visualization reinforces the conclusion that the discrepancy in the max pha
 \hfill\newline\noindent
 **Rescanning Land-Engraved Areas**\hfill\newline
 <!-- -->
-Our following action was to rescan and process the 3D topographical imaging on the bullets in question. The same control and test groups were used as the groove comparisons. Bullets 33 - 36 were rescanned, with 33 and 34 as the control. Replacing those comparisons in the interactive framework showed a drastic difference in results. In the matrix, the max phase correlation scores of the rescanned bullets aligned closely with those the other bullets fired from firearm D, shown in the middle plot of @fig-matrixDAdjustments. Furthermore, no significant change was found in the scores of the control group. When utilizing other parts of the FBCV, such as the 6x6 matrix and looking at the raw scans, these comparative results were reinforced. The alignment of signals for the rescans showed significant improvement compared to the previous alignment among barrel D.
+Another measure in our investigation was to rescan and process the 3D topographical imaging on the bullets in question. The same control and test groups were used as the groove comparisons. Bullets 33 - 36 were rescanned, with 33 and 34 as the control. Replacing those comparisons in the interactive framework showed a drastic difference in results. In the matrix, the max phase correlation scores of the rescanned bullets aligned closely with those the other bullets fired from firearm D, shown in the middle plot of @fig-matrixDAdjustments. Furthermore, no significant change was found in the scores of the control group. When utilizing other parts of the FBCV, such as the 6x6 matrix and looking at the raw scans, these comparative results were reinforced. The alignment of signals for the rescans showed significant improvement compared to the previous alignment among barrel D.
 
 Thus, the observed discrepancy in performance stems not from the algorithmic process itself but from inconsistencies in the raw scans utilized in the initial data processing. This could be due to various factors, including mislabeling or inadequate scanning. However, if this is a case of mislabeling scans, it raises questions regarding the provenance of the original scans.
 <!-- -->
@@ -959,9 +960,9 @@ Thus, the observed discrepancy in performance stems not from the algorithmic pro
 \hfill\newline\noindent
 **Closing the Loop**\hfill\newline
 <!-- -->
-To answer whether the data was mislabeled, we compared the original scans of bullet D to data obtained from all of the 12 other firearms in the Houston dataset. We selected one bullet from each firearm that performed exceptionally compared to the other bullets from that firearm (12 bullets in total). Those bullets were then compared to both each other and bullet 39 from firearm D, one of the originally poor-performing bullets.
+To answer whether the data was mislabeled, we compared the original scans of bullet D to data obtained from all of the 12 other firearms in the Houston dataset. We selected one bullet from each firearm that performed well when compared to the other bullets from that firearm (12 bullets in total). Those bullets were then compared to both each other and bullet 39 from firearm D, one of the originally poor-performing bullets.
 
-We found that 11 of the 12 bullets showed poor performance when compared to the selected bullet from firearm D. The exception was the bullet selected from firearm C. When comparing that bullet to bullet 39 of barrel D, the algorithmic results showed that the two bullets were likely fired from the same weapon. @fig-CD-Comparison shows the 6x6 matrix from our framework tool when comparing the selected bullet from firearm C to bullet 39 of barrel D. The alignment between these two bullets is extremely strong, even stronger than many other bullet comparisons where both bullets originated from firearm C.
+We found that 11 of the 12 bullets showed poor performance when compared to the selected bullet from firearm D. The exception was the bullet selected from firearm C. When comparing that bullet to bullet 39 of barrel D, the algorithmic results showed that the two bullets were likely fired through the same barrel. @fig-CD-Comparison shows the 6x6 matrix from our framework tool when comparing the selected bullet from firearm C to bullet 39 of barrel D. The alignment between these two bullets is extremely strong, even stronger than many other bullet comparisons where both bullets originated from barrel C.
 
 ```{r}
 #| label: fig-CD-Comparison
@@ -1002,9 +1003,11 @@ It is also important to note that the selected bullets did not perform well when
 
 This notion is strengthened by our visualization tool. When the comparisons for bullets 35-40 are substituted with those initially labeled as bullets 35-40 fired by barrel D, there is no significant deviation in performance according to the matrix shown in the bottom plot of @fig-matrixDAdjustments. While there may appear to be a dip in performance around this area, the differentiation happens in bullets 34-37, which is not the complete scope of the substituted bullets. Overall, these scans perform very well compared to other bullets shot by firearm C. Thus, we can conclude that bullets 35-40 were mislabeled and shot by firearm C, not D.
 
+XXX not sure what you mean by 'complete scope'
+
 ### Bullet Distance Analysis
 
-A key focus of this tool was evaluating whether model performance changes as more bullets are fired from a weapon. Using variograms, we provided a visual representation of this performance. A variogram is a geostatisitical tool used to visualize spatial dependence. In our context, spatial dependence refers to the relationship between model performance and distance (i.e., number of shots) between selected bullets. @fig-variograms illustrates variograms for all firearms in the Houston dataset. Note that poor-performing bullets from barrel D were removed in this analysis, as well as two bullets from barrel J that displaying similar performance issues. Future analysis will investigate the underlying cause of these discrepancies in bullet J.
+Firing shots from the same weapon while tracking the number of shots allows an investigation of the stability of the marks engraved on bullets over time.  Using variograms, we provided a visual representation of this performance.  @fig-variograms illustrates variograms for all firearms in the Houston dataset. Note that poor-performing bullets from barrel D were removed in this analysis, as well as two bullets from barrel J that displayed similar performance issues. <!--Future analysis will investigate the underlying cause of these discrepancies in bullet J.-->
 
 
 ```{r}
@@ -1085,9 +1088,10 @@ model_table <- data.frame(
 
 ```
 
-It is apparent that there is differences in baseline model performance between different firearms. $\theta_0$ ranges from `r min(model_table$intercept)` for barrel B to `r format(max(model_table$intercept), scientific = FALSE)` for barrel J, with a mean of `r sprintf("%.5f", mean(model_table$intercept))`.
+It is apparent that there is differences in baseline model performance between different firearms. $\theta_0$ ranges from `r round(min(model_table$intercept),2)` for barrel B to `r round(max(model_table$intercept), 2)` for barrel J, with a mean of `r sprintf("%.2f", mean(model_table$intercept))`.
 
-We hypothesized that model performance would decline as the distance between shots fired increases, leading $\theta_1$ to be negative. This is true in most firearms, but $\theta_1$ is positive for firearms 2, D, and J. Overall, however, $\theta_1$ is relatively small among all barrels, falling between `r min(model_table$slope)` and `r sprintf("%.5f", max(model_table$slope))`
+We expect that the similarity between shots will decline as the distance between shots  increases, leading $\theta_1$ to be negative. We see this performance in most firearms, Overall, however, $\theta_1$ is relatively small among all barrels, falling between `r min(model_table$slope)` and `r sprintf("%.5f", max(model_table$slope))`. The slight rise in firearms D and J is due to 
+<--This is true in most firearms, but $\theta_1$ is positive for firearms 2, D, and J.--> 
 , with a mean of `r sprintf("%.5f", mean(model_table$slope))`. Combined with the visual analysis of the variogram, we conclude that bullet distance has minimal effect on model accuracy relative to other causes of variability. This is evident when $d < 30$, whereas beyond $d > 30$, there is insufficient data to make definitive claims.
 
 Furthermore, we acknowledge that there is significant variability among the in-phase scores across the firearms we examined. This variability suggests that additional factors beyond bullet distance have a substantial effect on model performance and accuracy
