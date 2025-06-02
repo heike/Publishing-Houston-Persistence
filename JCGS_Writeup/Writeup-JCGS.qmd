@@ -132,23 +132,23 @@ Identifying the firearm used in a crime is a critical component of forensic exam
 
 Current forensic practices rely on examiners to visually inspect bullets under a comparison microscope for similarities of marks on the bullets' surfaces. As a bullet is discharged from the firearm, the rifling in the barrel forces the bullet to follow the grooves - like rails. Micro-imperfections in the barrel leave scratches (called *striations*) on the bullet's surface. Striations on land engraved areas (LEA; the area between two grooves) are assumed to be unique to the individual firearm. This allows forensic examiners to determine whether two bullets originate from the same source by seeing if these LEAs match [@afte]. However, this process is highly subjective, and relies heavily on an examiner's expertise, leading to criticism by the @nas2009 and the @pcast. In response, algorithms for assessing  the similarity of firearms evidence were developed [@carriquiryMachineLearningForensic2019; @chenFiredBulletSignature2019; @chuAutomaticIdentificationBullet2013; @juOpenSourceImplementationCMPS2022; @vorburgerApplicationsCrosscorrelationFunctions2011; @vorburgerTopographyMeasurementsApplications2015] to provide objective measures with the goal of augmenting an examiner's testimony.
 
-Algorithmic comparison methods have demonstrated considerable potential to quantify the similarity between pairwise pieces of evidence. However, current approaches have created a gap between the statistical metrics and the practical understanding of these metrics by practitioners. This gap highlights the need for a more effective method to assist forensic practitioners in assessing and understanding the algorithm's performance. 
+Algorithmic comparison methods have demonstrated considerable potential to quantify the similarity between pairwise pieces of evidence. However, current approaches have created a gap between the statistical metrics and the practical understanding of these metrics by practitioners creating the need for a more effective method to assist forensic practitioners in assessing and understanding the algorithm's performance. 
 
-Here, we are proposing the **Forensic Bullet Comparison Visualizer** (FBCV), as an interactive interface designed to visualize the  statistical metrics embedded in the context of the data [@wickhamVisualizingStatisticalModels2015] in a manner that is intuitive and accessible to forensic examiners. FBCV leverages linked interactive graphics to allow forensic examiners to engage with the complex algorithmic data at each stage of the process, thereby bridging the gap between statistical analysis and practical forensic application.
+Here, we are proposing the **Forensic Bullet Comparison Visualizer** (FBCV), as an interactive interface designed to visualize the  statistical metrics embedded in the context of the data [@wickhamVisualizingStatisticalModels2015] in a manner that is intuitive and accessible to forensic examiners. FBCV leverages linked interactive graphics to allow forensic examiners to engage with the complex algorithmic data at each stage of the process, thereby filling the gap between statistical analysis and practical forensic application.
 
 <!-- Interactive graphics section -->
-Interactive graphics allow the user to dynamically explore and manipulate graphical representations of data by means of direct manipulation of a chart's graphical elements -- usually through clicking, dragging, or rescaling [@eickHighInteractionGraphics1995; @swayneIntroductionSpecialIssue1999; @urbanekIPlotsEXtremeNextgeneration2011]. A typical strategy for visualizing complex data is to use high-dimensional plots, incorporating multiple variables and levels of aggregation. However, these plots often pose challenges in interpretability, especially among those unfamiliar with the data [@willsLinkedDataViews2008]. To improve readability, a cogent method is to use linked data views of simpler charts. Linked data views communicate with each other and the underlying data and respond to user interactions by updating their graphical elements accordingly. This linkage system allows for the display of highly interpretable graphs while preserving all relevant information. Users are able to select key features (1) and hide details that are less pertinent at the time (0), allowing for intuitive data exploration [@willsLinkedDataViews2008]. The FBCV leverages linked views to present data at multiple levels of the bullet analysis process.
+Interactive graphics allow the user to dynamically explore and manipulate graphical representations of data by means of direct manipulation of a chart's graphical elements -- usually through clicking, dragging, or rescaling [@eickHighInteractionGraphics1995; @swayneIntroductionSpecialIssue1999; @urbanekIPlotsEXtremeNextgeneration2011]. A typical strategy for visualizing complex data is to use high-dimensional plots, incorporating multiple variables and levels of aggregation. However, these plots often pose challenges in interpretability, especially among those unfamiliar with the data [@willsLinkedDataViews2008]. To improve readability, a cogent method is to use linked data views of simpler charts. Linked data views communicate with each other and the underlying data and respond to user interactions by updating their graphical elements accordingly. This linkage system allows for the display of  interpretable graphs while preserving all relevant information. Users are able to select key features (1) and hide details that are less pertinent at the time (0), allowing for intuitive data exploration [@willsLinkedDataViews2008]. The FBCV leverages linked views to present data at multiple levels of the bullet analysis process. {what does the (1) and the (0) mean? XXX}
 
 This paper  presents a short review of the algorithmic comparison process. We then discuss the role of interactive visualizations to support diagnostics at each stage of the process. We also showcase the  diagnostic capabilities of these visuals by presenting a real-world use case where we successfully applied the FBCV to identify an error in the data-cleaning process. Finally, we highlight other ways in which the FBCV can be utilized for further investigatory analysis. 
 
 <!-- the data -->
-The data used for illustrating the process is a dataset of scans provided by a collaboration of CSAFE (Center for Statistics and Applications of Forensic Evidence) and the Houston Forensic Science Center (HFSC). The data consists of scans from 40 test fires of each of 13 Ruger LCP barrels. Ten barrels (labeled  'A' through 'J') were consecutively manufactured, while the remaining three (labeled 1-3) come from HFSC's reference library of firearms. Here, we are analyzing 40 sequential shots from each of the barrel. The lettered barrels were only fired ten times each before this study. For ease of notation, we refer to these shots as 11 through 50. LCP barrels are traditionally rifled barrels with 6 lands and 6 groove areas. These barrels mark well, i.e., striation marks are almost visible to the naked eye, making them well-suited for a forensic analysis. Scans of the bullets were obtained  by the High-Resolution Microscopy Lab at Iowa State University using a Sensofar confocal light microscope. For each bullet, 3d topographic images of each of the six land engraved areas (LEA) were acquired at 20x magnification (corresponding to 0.645 micron/pixel), resulting in a total of 3,120 LEA scans (13 barrels x 40 bullets x 6 lands).
+The data used for illustrating the process is a set of scans provided by a collaboration of CSAFE (Center for Statistics and Applications of Forensic Evidence) and the Houston Forensic Science Center (HFSC). The data consists of scans from 40 test fires of each of 13 Ruger LCP barrels. Ten barrels (labeled  'A' through 'J') were manufactured in the same batch, while the remaining three (labeled 1-3) come from HFSC's reference library of firearms. Here, we are analyzing 40 sequential shots from each of the barrel. The lettered barrels were only fired ten times each before this study. For ease of notation, we refer to these shots as 11 through 50. LCP barrels are traditionally rifled barrels with 6 lands and 6 groove areas. These barrels mark well, i.e., striation marks are almost visible to the naked eye, making them well-suited for a forensic analysis. Scans of the bullets were obtained  by the Roy J.\ Carver High-Resolution Microscopy Lab at Iowa State University using a Sensofar confocal light microscope. For each bullet, 3d topographic images of each of the six land engraved areas (LEA) were acquired at 20x magnification (corresponding to 0.645 micron/pixel), resulting in a total of 3,120 LEA scans (13 barrels x 40 bullets x 6 lands).
 
 <!-- ## Algorithmic Comparisons -->
 
 These scans provide the basis for algorithmic comparisons.
 For the processing of scans and comparison of signals, we follow the steps outlined in @hareAutomaticMatchingBullet2017, implemented in the `bulletxtrctr` package in R [@hofmannBulletxtrctrAutomaticMatching2022]. 
-We apply the following steps to each of the 3,120 scans [steps 1-4] and each pair of scans [step 5]. The results from these comparisons were then rendered in our visualization framework [[@sec-visuals]].
+We apply the following steps to each of the 3,120 scans [steps 1-4] and each pair of scans [step 5]. The results from these comparisons are then rendered in our visualization framework [[@sec-visuals]].
 
 ```{r}
 #| label: fig-extracted-sigs
@@ -162,10 +162,11 @@ knitr::include_graphics("../figure/data-process.png")
 
 ```{r}
 #| label: fig-aligned-sigs
-#| fig-cap: "Aligned Signals from lands of two separate bullets."
+#| fig-cap: "Aligned Signals from lands of two separate bullets (from barrel A)."
 #| fig-align: "center"
-#| fig-height: 6
-#| fig-wdith: 3
+#| fig-height: 3.25
+#| fig-width: 7
+#| out-width: '90%'
 
 
   bullets <- readRDS(here::here("models/sampleBullets.rds"))
@@ -194,43 +195,50 @@ knitr::include_graphics("../figure/data-process.png")
   
   d$lands %>%
     tidyr::gather(sigs, value, sig1, sig2) %>%
-    ggplot(aes(x = x, y = value, colour = sigs)) + 
+    mutate(
+      Land = ifelse(sigs=="sig1", "B11-L6", "B12-L6")
+    ) %>%
+    ggplot(aes(x = x/1000, y = value, colour = Land)) + 
     geom_line() +
     theme_bw() +
     scale_color_brewer(palette = "Dark2") +
-    labs(color = "Signals")
+    labs(color = "Signals", 
+         y = "(Relative) Surface height in microns [µm]",
+         x = "(Relative) Horizontal extent in millimeters [mm]") +
+    ylim(c(-5,5))
 
 ```
 
-1.  A 3d LEA scan (left in @fig-extracted-sigs) is inspected for its suitability for comparisons, scans of low quality or of damaged lands (due to tank 'rash', pitting, or cracks) are removed from the analysis.
+1.  A 3d LEA scan (left in @fig-extracted-sigs) is inspected for its suitability for comparisons, scans of low quality or of damaged lands (due to tank 'rash', pitting, or cracks) are declared 'unsuitable for comparison' and removed from the analysis.
 
 2.  A crosscut is chosen orthogonal to the direction of well-marked striations (marked as a yellow line in the rendering of the scan left in @fig-extracted-sigs).
 
 3.  The topographical measurements corresponding to this crosscut are extracted from the scan. The middle plot in @fig-extracted-sigs shows the profile of these height measurements along the crosscut. The spike in height at either end of the profile indicates the start of the neighboring groove areas and need to be excluded from the comparison (values outside the vertical blue lines).  
 
-4. The signal for a LEA (shown on the right of @fig-extracted-sigs) is created by removing the bullet curvature from the profile using a non-parametric smooth [@clevelandRobustLocallyWeighted1979].
+4. The signal for a land (shown on the right of @fig-extracted-sigs) is created by removing the bullet curvature from the profile using a non-parametric smooth [@clevelandRobustLocallyWeighted1979].
  
 5.  Finally, signals are aligned pairwise, as shown in @fig-aligned-sigs, and metrics assessing their similarity --such as the number of matching peaks, height of matching peaks,  number of consecutively matching peaks, and, more statistically, cross-correlation-- are extracted.
 
 These metrics provide the basis of a quantifiable comparison of the strength of similarities with statistical models and algorithms. 
-Common examples of such algorithms include random forests [@hofmannBulletxtrctrAutomaticMatching2022] and congruent matching profile segments [@chenFiredBulletSignature2019; @juOpenSourceImplementationCMPS2022]. A large number of these algorithms are based on the maximized cross-correlation function between pairs of signals. This is the metric which we will use in this paper. However, this is not an actual restriction, any other similarity metric would work similarly well, with its usability only restricted by the metric's diagnostic ability.
+Common examples of such algorithms include random forests [@hofmannBulletxtrctrAutomaticMatching2022] and congruent matching profile segments [@chenFiredBulletSignature2019; @juOpenSourceImplementationCMPS2022]. A large number of these algorithms are based on the maximized cross-correlation function between pairs of signals. This is the metric which we will use in this paper. However, this is not an actual restriction, any other similarity metric would work similarly well, with its usability only restricted by the metric's  ability to distinguish between marks from the same source and marks from different sources.
 
-Assume that $X = \left\{X_t\right\}_{1 \le t \le N_X}$ and $Y = \left\{X_s\right\}_{1 \le s \le N_Y}$ are the observed surface measurements (signals) of two land engraved areas (with $N_X, N_Y$ the number of the respective observations). The correlation between $X$ and $Y$ is defined as the ratio of their covariance scaled by their respective variances: 
+Assume that $X = \left\{X_t\right\}_{1 \le t \le N_X}$ and $Y = \left\{X_s\right\}_{1 \le s \le N_Y}$ are the observed surface measurements (signals) of two land engraved areas (with $N_X, N_Y$ the number of the respective observations). The (theoretical) correlation between $X$ and $Y$ is defined as the ratio of their covariance scaled by their respective variances: 
 <!-- -->
 $$
 \text{corr} (X, Y) = \frac{\text{Cov(X, Y)}}{\sqrt{\text{Var}(X) \text{Var}(Y)}}
 $$ 
-$Y^{(k)}$ defines the $k$th lag of $Y$ with $Y^{(k)}_s = Y_{k+s}$ with $k \in [-M, M]$ and $0 \le M < N_Y$. The choice of $M$ depends on the minimal number of values $N_Y-M$ used as a basis for an evaluation of the similarity of the two signals. With that we define the maximized cross-correlation function $CCF_{\text{max}} (X, Y)$ as
+Let $Y^{(k)}$ define the $k$th lag of $Y$ with $Y^{(k)}_s = Y_{k+s}$ with $k \in [-M, M]$ and $0 \le M < N_Y$.  With that we define the ($M$-bound) maximized cross-correlation function $CCF_{\text{max}} (X, Y)$ as
 <!-- -->
 $$
 CCF_{\text{max}} (X, Y) = \text{arg} \text{max}_{k \in [-M, M]} \text{corr}(X, Y^{(k)}).
 $$
-Here, we use $M=500$  for the alignment of signals. This corresponds to a horizontal shift of $\pm 500$ values (equal to $\pm 500 \times 0.645 \mu = .323 mm$) corresponding to about a quarter of a scan's width.
+The choice of $M$ depends on the minimal number of values $N_Y-M$ used as a basis for the empirical estimation of the cross-correlation between the two signals.
+Here, we use $M=500$  for the alignment of signals. This corresponds to a horizontal shift of $\pm 500$ values (equal to $\pm 500 \times 0.645 \mu\text{m} = .323$ mm) corresponding to about a quarter of a scan's width.
 
 
 <!-- Visualization Development -->
 
-When assessing the similarity of one bullet to another, a common approach is to assemble all scores from comparing pairs of lands in form of a square matrix and visualize it in form of a tile plot, see @fig-land-matrix. The fill color encodes the score (here, the ccf) between a pair of LEAs. Higher values indicate higher similarity, shown in shades of orange. Tiles filled with grey values indicate less similarity.  The two bullets shown in the example are known to have been fired through the same barrel. In this case, we expect six pairs of lands with high similarities (in-phase), while all other pairs (out-of phase) should result in low scores. This is exactly the pattern that can be seen in @fig-land-matrix. 
+When assessing the similarity of one bullet to another, a common approach is to assemble all scores from comparing pairs of lands in form of a square matrix and visualize it in form of a tile plot, see @fig-land-matrix. The fill color encodes the score (here, the empirical CCF$_\text{max}$) between a pair of LEAs. Higher values indicate higher similarity, shown in shades of orange. Tiles filled with grey values indicate less similarity.  The two bullets shown in the example are known to have been fired through the same barrel. In this case, we expect six pairs of lands with high similarities (in-phase, framed and marked by 'x'), while all other pairs (out-of phase) should result in low scores. This is exactly the pattern that can be seen in @fig-land-matrix. 
 
 ```{r}
 #| label: helper-functions
@@ -269,7 +277,7 @@ make_phases <- function(d){
 
 ```{r}
 #| label: fig-land-matrix
-#| fig-cap: "Tile plot of all pairwise comparisons of LEA signals from two different bullets"
+#| fig-cap: "Tile plot of all pairwise comparisons of LEA signals from two different bullets fired through the same barrel."
 #| fig-align: "center"
 #| fig-width: 3.15
 #| fig-height: 2
@@ -314,13 +322,13 @@ $$
 $$
 -->
 
-A summary statistic is computed using the average of in-phase scores, as these reflect bullet similarity while also being highly indicative of model performance. This is given as
+The empirical maximized CCF is a measure for the similarity for a pair of lands, for a bullet-level evaluation, we compute the average of in-phase scores [@songProposedBulletSignature2000a], as these reflect bullet similarity while also being highly indicative of model performance. This is given as
 
 $$
 \mathrm{\overline{CCF}_{max}}(B_1, B_2) = \underbrace{\left[  \frac{1}{n} \sum_{(i,j) \in \mathcal{P}} c_{ij}\right]}_{\text{in-phase average}},
 $$
 
-where $c_{ij}$ is the score between land $i$ on bullet 1 and land $j$ on bullet 2, with $1 \le i, j \le n=6$, where ${\cal P}$ denotes the pairs of lands that capture the best alignment between bullets $B_1$ and $B_2$.
+where $c_{ij}$ is the score between land $i$ on bullet 1 and land $j$ on bullet 2, with $1 \le i, j \le n=6$, and the phase $\mathcal{P}$ denotes the pairs of lands that capture the best alignment between bullets $B_1$ and $B_2$.
 
 A pairwise comparison of $K$ number of bullets results in a set of scores of size $^KC_2 = \frac{1}{2}K(K-1)$ or $^KC_2 + K$, if we also consider to allow a comparison of a bullet to itself (done to achieve an empirical assessment of the range of scores we can expect to see for a particular type of ammunition and firearm). Different types of visualizations of these set of scores are discussed in the next section.
 
@@ -337,11 +345,11 @@ knitr::include_graphics("../figure/overview.png")
 ```
 
 
-As seen in the previous section, there are similarity scores at the bullet-to-bullet level, there are scores at the land-to-land level, and there are important diagnostics for individual pairs of lands. For any given comparison, we have pertinent information at each of these levels (see @fig-tool-pipeline).
+As seen in the previous section, similar there are similarity scores at the bullet-to-bullet level, there are scores at the land-to-land level, and there are important diagnostics for individual pairs of lands. For any given comparison, we have pertinent information at each of these levels (see @fig-tool-pipeline).
 The statistical perspective focuses on scores within the distribution of other, comparable scores, while the focus in a forensic examination is on the individual.
 The idea of this visualization tool is to connect these different levels and perspectives for a seamless exploration. 
 
-The forensic bullet comparison visualizer (FBCV) is created in HTML using a combination of Javascript and R code. This allows us to leverage the everyday familiarity of links for implementing connections across levels of information. An implementation of the FBCV showing all comparisons involving bullets from barrel A can be found at [https://tinyurl.com/y53n3mkm](https://tinyurl.com/y53n3mkm). 
+The forensic bullet comparison visualizer (FBCV) is created in HTML using a combination of Javascript and R code. XXX which packages, exactly? This allows us to leverage the everyday familiarity of links for implementing connections across levels of information. An implementation of the FBCV showing all comparisons involving bullets from barrel A can be found at [https://tinyurl.com/y53n3mkm](https://tinyurl.com/y53n3mkm). 
 
 ```{r}
 #| label: fig-framework-interface
@@ -353,7 +361,6 @@ knitr::include_graphics("../figure/FrameworkInterface.png")
 ```
 <!-- -->
 The main interface of the FBCV consists of a set of tabs with choices for the visualization of the set of bullet scores, see @fig-framework-interface. Each tab shows an interactive visualization that focuses on a different aspect of the data, which is discussed in more detail next.
-\hfill\newline
 
 **Tile plots** are our default choice for visualizing all bullet comparisons. The left side of @fig-tilePlots shows the 40x40 matrix of all pairwise bullet comparisons in for barrel A and same-bullet scores on the diagonal. Each row and column corresponds to the bullet involved in the comparison, each cell represents the maximum phase correlation score for the respective comparison.
 
@@ -592,11 +599,11 @@ knitr::include_graphics("../figure/scatterA.png")
 
 Clicking on a point again brings up the 6x6 matrix of land-to-land comparisons resulting in the selected point's score.
 
-Clicking on the *lineplot* tab brings up the same scatterplot, with the key distinction that points representing the same second bullet in the comparison are connected by a line. This visualization helps to emphasize the relationships and trends between the points that share the same bullet.
+Clicking on the *lineplot* tab brings up the same scatterplot, with the key distinction that points representing the same second bullet in the comparison are connected by a line. This visualization helps to emphasize the relationships and trends between the points that share the same bullet. In @fig-scatterplot all comparisons with bullet 46 are highlighted. We see, that this bullet is generally involved in low scores, i.e.\ is not as similar to any of the bullets from this barrel.
 <!-- -->
 \hfill\newline
-**Variograms** are used to represent values as a function of the  distance. In this context, the variogram illustrates how the similarity of bullets is affected by the number of bullets fired between them, shown in @fig-variogramA. The x-axis represents the numerical distance between shots (11 vs. 12 corresponds to a distance of 1, while 11 vs. 50 is a distance of 39). The y-axis represents the algorithmic score between the bullets. The blue line shows a loess fit to capture the main trend. Clicking on any point within the variogram leads to the same interactive pipeline as the scatterplots and other visualizations.
-
+**Variograms** are used to represent values as a function of the  distance. In this context, the variogram illustrates how the similarity of bullets is affected by the number of bullets fired between them, shown in @fig-variogramA. The $x$-axis represents the numerical distance between shots (11 vs. 12 corresponds to a distance of 1, while 11 vs. 50 is a distance of 39). The $y$-axis represents the algorithmic score between the bullets. The blue line shows a loess fit to capture the main trend. Clicking on any point within the variogram leads to the same interactive pipeline as the scatterplots and other visualizations.
+XXX What do we expect to see?
 ```{r}
 #| label: fig-variogramA
 #| fig-cap: "The variogram included in the visualization framework"
@@ -631,7 +638,7 @@ These visualizations are integrated into a single HTML webpage, providing a comp
 
 ### The Case of Barrel D
 
-The provided visualizations have shown scores for barrel A, but not all firearms displayed such straight-forward results. One such case was the scores for barrel D. After running the pairwise comparisons and analyzing the visualization framework, it became apparent that there was an error in the analysis for bullets 35-40. These bullets performed well when compared to each other but did not score highly compared to the other bullets shot from this firearm, as shown in @fig-matrixD. In the next section, we highlight different strategies to deal with this data discrepancy, comparing two control bullets (33-34) and the affected bullets (35-40). The bullets primarily used in this analysis are highlighted in @fig-matrixD.
+The provided visualizations have shown scores for barrel A, but not all firearms displayed such straight-forward results. One such case was the scores for barrel D. After running the pairwise comparisons and analyzing the visualization framework, it became apparent that there was something strange going on with the scores for bullets 35-40. These bullets had relatively high scores compared to each other but scored fairly low when compared to any of the other bullets fired from barrel D, as shown in @fig-matrixD. In the next section, we lay out our use of different strategies to get to the bottom of this data discrepancy by comparing two control bullets (33-34) and the affected bullets (35-40) to different alternative sources. The bullets primarily used in this analysis are highlighted in @fig-matrixD.
 
 
 ```{r}
@@ -739,7 +746,7 @@ matrixD <- matrix
   
   #Creating a dataframe with only the bullets of interest in these comparisons
   houstonDComparisons <- houstonP2 %>% filter(bullet2 %in% c(33:40))
-  houstonDComparisons <- houstonDComparisons %>% mutate(analysisType = "Grooves")
+  houstonDComparisons <- houstonDComparisons %>% mutate(analysisType = "Grooves of D")
 
 
 ```
@@ -804,7 +811,7 @@ houstonChanges <- readr::read_csv(here::here("data/houston-comparisons-D2.csv"))
   
   #Adding to the dataframe for figure comparison
   houstonDRescans <- houstonP2 %>% filter(bullet2 %in% c(33:40))
-  houstonDRescans <- houstonDRescans %>% mutate(analysisType = "Rescans")
+  houstonDRescans <- houstonDRescans %>% mutate(analysisType = "Rescans of D")
   houstonDComparisons <- rbind(houstonDComparisons, houstonDRescans)
 
 ```
@@ -867,7 +874,7 @@ houstonChanges <- readr::read_csv(here::here("data/houston-comparisons-D2.csv"))
   
   #Adding to the dataframe for visualization
   houstonC <- houstonP2 %>% filter(bullet2 %in% c(33:40))
-  houstonC <- houstonC %>% mutate(analysisType = "Tile Plot C")
+  houstonC <- houstonC %>% mutate(analysisType = "Barrel C")
   houstonDComparisons <- rbind(houstonDComparisons, houstonC)
   
 ```
