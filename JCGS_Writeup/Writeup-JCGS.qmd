@@ -114,8 +114,9 @@ library(knitr)
 library(patchwork)
 library(kableExtra)
 
-set.seed(1) #For barrel vs. barrel comparisons across models
-
+#set.seed(1) #For barrel vs. barrel comparisons across models
+# HH: 1 is not always providing good random numbers - some methods need a bit of startup for small seeds, use something that's five or six digits long.
+set.seed(654321)
 #Reading the background data – this process can be replicated using any comparison method. We applied a cross-correlation function to obtain these comparisons, but similar methods could be used to yield the same visualizations
 main <- readr::read_csv(here::here("data/houston-all-comparisons.csv.zip"))
 
